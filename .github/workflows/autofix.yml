@@ -18,13 +18,11 @@ jobs:
         with:
           node-version: lts/*
 
-      - name: Setup
-        run: npm i -g @antfu/ni
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
 
       - name: Install
-        run: nci
+        run: pnpm i
 
       - name: Lint
-        run: nr lint:fix
-
-      - uses: autofix-ci/action@635ffb0c9798bd160680f18fd73371e355b85f27
+        run: pnpm run lint:fix
