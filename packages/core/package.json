@@ -1,0 +1,24 @@
+{
+  "name": "@trace-script/core",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "author": "lonewolfyx <https://github.com/lonewolfyx>",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "prepack": "pnpm run build"
+  }
+}

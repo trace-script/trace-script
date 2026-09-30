@@ -1,0 +1,39 @@
+{
+  "name": "@trace-script/sdk",
+  "type": "module",
+  "description": "Trace Script — Visualize Agent event streams right in your browser extension. Trace every call with the same intuitive clarity as the Network panel.",
+  "author": "lonewolfyx <https://github.com/lonewolfyx>",
+  "license": "MIT",
+  "homepage": "https://github.com/trace-script/trace-script/tree/main/packages/sdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trace-script/trace-script.git",
+    "directory": "packages/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/trace-script/trace-script/issues"
+  },
+  "keywords": [
+    "agent",
+    "trace",
+    "extensions",
+    "chrome-extensions",
+    "trace-script"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@trace-script/tsconfig",
+  "type": "module",
+  "private": true,
+  "author": "lonewolfyx <https://github.com/lonewolfyx>",
+  "license": "MIT",
+  "devDependencies": {
+    "@lonewolfyx/tsconfig": "^0.0.6"
+  }
+}

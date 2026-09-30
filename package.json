@@ -1,33 +1,36 @@
 {
+  "name": "trace-script",
   "type": "module",
   "version": "0.0.0",
   "private": true,
-  "packageManager": "pnpm@10.4.0",
+  "packageManager": "pnpm@11.24.0",
+  "description": "Trace Script — Visualize Agent event streams right in your browser extension. Trace every call with the same intuitive clarity as the Network panel.",
+  "author": "lonewolfyx <https://github.com/lonewolfyx>",
+  "license": "MIT",
   "scripts": {
-    "build": "nr -r build",
-    "dev": "nr -r dev",
-    "lint": "eslint --cache .",
-    "prepublishOnly": "nr build",
-    "release": "bumpp -r && pnpm -r publish",
-    "test": "vitest",
-    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix",
     "prepare": "simple-git-hooks"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "catalog:",
-    "@types/node": "catalog:",
-    "bumpp": "catalog:",
-    "eslint": "catalog:",
-    "lint-staged": "catalog:",
-    "simple-git-hooks": "catalog:",
-    "trace-script": "workspace:*",
-    "tsx": "catalog:",
-    "typescript": "catalog:",
-    "vite": "catalog:",
-    "vitest": "catalog:"
+    "@antfu/eslint-config": "^9.5.1",
+    "@trace-script/tsconfig": "workspace:*",
+    "@types/node": "^26.6.3",
+    "eslint": "^10.11.0",
+    "jiti": "^2.7.0",
+    "lint-staged": "^17.6.0",
+    "simple-git-hooks": "^2.14.0",
+    "tsdown": "^0.23.0",
+    "tsx": "^4.23.15",
+    "turbo": "^2.11.5",
+    "typescript": "^6.0.3",
+    "verify-git-commit": "^0.0.1",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
   },
   "simple-git-hooks": {
-    "pre-commit": "pnpm lint-staged"
+    "pre-commit": "npx lint-staged",
+    "commit-msg": "npx verify-git-commit"
   },
   "lint-staged": {
     "*": "eslint --fix"
