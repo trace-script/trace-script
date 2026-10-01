@@ -1,38 +1,38 @@
-# Agent 工作规范
+# Agent Guidelines
 
-本文件适用于所有参与本仓库工作的 Agent，覆盖整个仓库。
+These rules apply to every agent working in this repository and cover the entire repository.
 
-## 1. 分支、提交与 PR
+## 1. Branches, Commits, and Pull Requests
 
-- 禁止在任何输出中（包括与用户沟通、文档、代码注释、提交信息及 PR 标题或正文）引用、描述或讨论 `main` 分支的内容。本文件中的该分支名称仅用于声明禁令。
-- 所有修改和提交必须在任务对应的工作分支上完成，禁止直接在 `main` 分支修改、提交或推送。
-- 仅可提及本次任务相关的工作分支；提及时必须创建该分支对应的 PR，并同时提供 PR 链接。
-- 每个交付改动的工作分支必须创建对应的 PR；未经用户明确要求，不得自行合并 PR。
-- **PR 标题和正文必须全部使用英文**，提交信息也必须使用英文。
-- 提交信息和 PR 标题必须遵循 [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/)：
+- Do not reference, describe, or discuss the contents of the `main` branch in any output, including user communication, documentation, code comments, commit messages, or PR titles and bodies. This branch name appears here solely to state the prohibition.
+- Make all changes and commits on the working branch for the current task. Do not modify, commit, or push directly to `main`.
+- Only mention working branches relevant to the current task. Before mentioning a working branch, create its corresponding PR and include the PR link with the mention.
+- Every working branch that delivers changes must have a corresponding PR. Do not merge a PR unless the user explicitly requests it.
+- **PR titles and bodies must be entirely in English.** Commit messages must also be in English.
+- Commit messages and PR titles must follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/):
 
   ```text
   <type>[optional scope][!]: <description>
   ```
 
-  新功能使用 `feat`，修复使用 `fix`；文档、重构、测试等改动使用合适的类型，例如 `docs`、`refactor`、`test`、`chore`。破坏性变更必须使用 `!` 或 `BREAKING CHANGE:` 标识，并说明影响。
-- PR 正文使用英文说明问题、最终改动、验证结果，以及适用的消融结论和限制；正文不强制套用提交标题格式。
+  Use `feat` for new features and `fix` for bug fixes. Choose an appropriate type for other changes, such as `docs`, `refactor`, `test`, or `chore`. Mark breaking changes with `!` or `BREAKING CHANGE:` and explain their impact.
+- Write PR bodies in English and explain the problem, final changes, validation results, and applicable ablation findings and limitations. PR bodies do not need to follow the commit title format.
 
-## 2. TypeScript 类型限制
+## 2. TypeScript Type Restrictions
 
-- Agent 编写、新增或修改 TypeScript 类型定义时，未经用户明确确认，**禁止使用 `null`、`undefined`、`any`、`unknown`**。
-- 限制覆盖类型注解、类型别名、接口成员、联合或交叉类型、泛型参数及约束、函数参数和返回类型、类型断言，以及声明文件中的类型定义。
-- 优先使用明确的领域类型、字面量类型、判别联合和准确的泛型约束，保持类型表达与实际数据一致。
-- 不得通过类型断言、间接别名、忽略类型检查或关闭检查绕过限制；不得为了避开限制声明与运行时数据不符的类型。
-- 如果确实需要受限类型，必须先向用户说明具体位置、原因、替代方案及影响，并取得明确确认后再编写。确认仅适用于获准的具体范围，不构成后续使用的默认授权。
-- 无须为本规则批量改写既有类型；普通运行时值判断不属于类型定义，但不得借此引入受限类型。
+- When writing, adding, or modifying TypeScript type definitions, agents **must not use `null`, `undefined`, `any`, or `unknown` without explicit user confirmation**.
+- This restriction covers type annotations, type aliases, interface members, union and intersection types, generic parameters and constraints, function parameter and return types, type assertions, and type definitions in declaration files.
+- Prefer precise domain types, literal types, discriminated unions, and accurate generic constraints. Keep type definitions consistent with the actual data.
+- Do not bypass these restrictions through type assertions, indirect aliases, suppressed type checks, or disabled checks. Do not declare types that misrepresent runtime data to avoid the restrictions.
+- If a restricted type is necessary, first explain its exact location, rationale, alternatives, and impact to the user. Obtain explicit confirmation before writing it. Confirmation applies only to the approved scope and does not authorize future uses by default.
+- These rules do not require a bulk rewrite of existing types. Ordinary runtime value checks are not type definitions, but must not be used to introduce restricted types.
 
-## 3. 代码质量与消融实验
+## 3. Code Quality and Ablation Experiments
 
-- 编写或修改代码时，必须围绕本次改动进行消融实验：逐项移除候选实现中的抽象、封装、配置或间接层，验证其是否确有必要。
-- 先明确需要保持的行为和验收标准；每次仅移除一个候选设计，使用相同输入和相关检查对比移除前后的结果。
-- 若移除后仍满足需求，且代码更易理解和维护，应保留简化实现；若必须保留某项设计，应记录移除后失败的场景及证据。
-- 优先清晰命名、直接控制流和职责明确的小函数；删除无必要的抽象、重复封装、无效分支、死代码，以及仅为假设中的未来需求添加的扩展点。
-- 不以代码行数减少作为唯一标准；保持必要的边界校验、错误处理和真实业务规则，确保可读性、正确性与维护质量。
-- 验证应匹配改动风险，使用已有的相关测试、类型检查或必要的行为验证；有性能目标时才进行对应的测量。不得为简单可逆的改动增加无关测试或复杂实验框架。
-- 在 PR 中说明被移除的设计、比较方法及结果；没有可消融的代码设计时，明确说明不适用及原因，不得虚构实验结果。纯文档改动只需核对内容和格式。
+- When writing or modifying code, perform ablation experiments scoped to the current change: remove candidate abstractions, wrappers, configuration, or layers of indirection one at a time to determine whether they are necessary.
+- First define the behavior to preserve and the acceptance criteria. Remove one candidate design at a time and compare the results before and after removal using the same inputs and relevant checks.
+- Keep the simpler implementation if it still meets the requirements and improves readability and maintainability. If a design must be retained, record the scenario that fails when it is removed and the supporting evidence.
+- Prefer clear names, direct control flow, and small functions with clear responsibilities. Remove unnecessary abstractions, duplicate wrappers, ineffective branches, dead code, and extension points added only for hypothetical future needs.
+- Do not use fewer lines of code as the sole success criterion. Preserve necessary boundary validation, error handling, and actual business rules to maintain readability, correctness, and maintainability.
+- Match validation to the risk of the change. Use existing relevant tests, type checks, or necessary behavior checks. Measure performance only when there is a performance goal. Do not add unrelated tests or complex experiment frameworks for simple, reversible changes.
+- Explain the removed designs, comparison methods, and results in the PR. If there is no applicable code design to ablate, state why ablation is not applicable. Never invent experiment results. Documentation-only changes require content and formatting checks.
