@@ -13,20 +13,20 @@
     "prepare": "simple-git-hooks"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^9.5.1",
+    "@antfu/eslint-config": "catalog:lint",
     "@trace-script/tsconfig": "workspace:*",
-    "@types/node": "^26.6.3",
-    "eslint": "^10.11.0",
-    "jiti": "^2.7.0",
-    "lint-staged": "^17.6.0",
-    "simple-git-hooks": "^2.14.0",
-    "tsdown": "^0.23.0",
-    "tsx": "^4.23.15",
-    "turbo": "^2.11.5",
-    "typescript": "^6.0.3",
-    "verify-git-commit": "^0.0.1",
-    "vite": "^8.3.1",
-    "vitest": "^5.0.2"
+    "@types/node": "catalog:types",
+    "eslint": "catalog:lint",
+    "jiti": "catalog:dev",
+    "lint-staged": "catalog:lint",
+    "simple-git-hooks": "catalog:dev",
+    "tsdown": "catalog:build",
+    "tsx": "catalog:dev",
+    "turbo": "catalog:build",
+    "typescript": "catalog:dev",
+    "verify-git-commit": "catalog:dev",
+    "vite": "catalog:build",
+    "vitest": "catalog:test"
   },
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged",

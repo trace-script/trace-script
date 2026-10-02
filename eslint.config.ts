@@ -2,6 +2,7 @@ import type { Linter } from 'eslint'
 import antfu from '@antfu/eslint-config'
 
 const config = antfu({
+  pnpm: true,
   type: 'lib',
   typescript: true,
   rules: {

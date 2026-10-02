@@ -12,3 +12,25 @@ packages:
 allowBuilds:
   esbuild: true
   simple-git-hooks: true
+
+catalogs:
+  build:
+    tsdown: ^0.23.0
+    turbo: ^2.11.5
+    vite: ^8.3.1
+  config:
+    '@lonewolfyx/tsconfig': ^0.0.6
+  dev:
+    jiti: ^2.7.0
+    simple-git-hooks: ^2.14.0
+    tsx: ^4.23.15
+    typescript: ^6.0.3
+    verify-git-commit: ^0.0.1
+  lint:
+    '@antfu/eslint-config': ^9.5.1
+    eslint: ^10.11.0
+    lint-staged: ^17.6.0
+  test:
+    vitest: ^5.0.2
+  types:
+    '@types/node': ^26.6.3
