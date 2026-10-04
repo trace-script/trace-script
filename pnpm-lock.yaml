@@ -126,9 +126,6 @@ importers:
       eslint-factory:
         specifier: catalog:lint
         version: 0.1.2(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
-      eslint-flat-config-utils:
-        specifier: 3.2.0
-        version: 3.2.0
       happy-dom:
         specifier: catalog:test
         version: 20.14.5
