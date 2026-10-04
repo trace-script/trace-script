@@ -21,3 +21,6 @@ playwright-report
 
 .build
 artifacts
+
+# TypeScript incremental build cache
+*.tsbuildinfo

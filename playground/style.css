@@ -1,10 +1,17 @@
 :root { color-scheme: dark; font-family: system-ui, sans-serif; color: #e6edf3; background: #0d1117; }
 body { margin: 0; }
-main { max-width: 760px; margin: 72px auto; padding: 0 28px; }
-h1 { font-size: 36px; letter-spacing: -0.03em; }
-p, li { line-height: 1.8; color: #a9b5c5; }
+main { max-width: 960px; margin: 48px auto; padding: 0 24px; }
+h1 { font-size: clamp(26px, 5vw, 36px); letter-spacing: -0.03em; }
+p, label { line-height: 1.8; color: #a9b5c5; }
 .eyebrow { color: #74c7ec; font: 12px monospace; letter-spacing: 0.15em; }
-section { margin: 32px 0; padding: 20px 28px; border: 1px solid #263142; border-radius: 12px; background: #141b26; }
+section { margin: 24px 0; padding: 24px; border: 1px solid #263142; border-radius: 12px; background: #141b26; }
 h2 { margin-top: 0; font-size: 18px; }
-code { color: #b9dfc9; }
+select, button { font: inherit; border: 1px solid #3a4a61; border-radius: 6px; color: #e6edf3; background: #192333; padding: 10px 14px; }
+select { display: block; margin: 8px 0 16px; max-width: 100%; }
+button { cursor: pointer; }
+button:hover { background: #26364d; }
+button:disabled { cursor: wait; opacity: 0.6; }
+:focus-visible { outline: 2px solid #74c7ec; outline-offset: 4px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .status { border-left: 3px solid #74c7ec; padding-left: 16px; }
+pre { max-height: 520px; overflow: auto; font: 12px/1.6 ui-monospace, monospace; background: #0d1117; padding: 16px; border-radius: 8px; }

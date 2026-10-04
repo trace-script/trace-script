@@ -240,6 +240,9 @@ importers:
 
   packages/sdk:
     dependencies:
+      '@trace-script/core':
+        specifier: workspace:*
+        version: link:../core
       '@trace-script/metadata':
         specifier: workspace:*
         version: link:../metadata
@@ -277,6 +280,12 @@ importers:
 
   playground:
     dependencies:
+      '@trace-script/core':
+        specifier: workspace:*
+        version: link:../packages/core
+      '@trace-script/metadata':
+        specifier: workspace:*
+        version: link:../packages/metadata
       '@trace-script/sdk':
         specifier: workspace:*
         version: link:../packages/sdk
