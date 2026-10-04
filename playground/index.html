@@ -4,23 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trace Script Playground</title>
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="./style.css">
   </head>
   <body>
     <main>
       <p class="eyebrow">TRACE SCRIPT / PLAYGROUND</p>
       <h1>Agent Trace 调试工作台</h1>
-      <p>本地开发入口已经就绪。安装构建的扩展后，打开 DevTools 中的 Agent Trace 面板。</p>
-      <section aria-labelledby="verification-title">
-        <h2 id="verification-title">第一阶段验收</h2>
-        <ol>
-          <li>执行根目录 <code>pnpm build</code>。</li>
-          <li>在 Chrome 扩展管理中加载 <code>packages/chrome-extensions/dist</code>。</li>
-          <li>打开此页面的 DevTools，检查 Agent Trace 面板和构建版本。</li>
-          <li>关闭并重新打开 DevTools，检查面板仍可正常显示。</li>
-        </ol>
+      <p>选择固定场景，通过网页 SDK 或原生协议发布。安装扩展后，在此页面的 DevTools 中打开 Agent Trace 面板。</p>
+      <section aria-labelledby="scenario-title">
+        <h2 id="scenario-title">发布场景</h2>
+        <label for="scenario">固定样例</label>
+        <select id="scenario">
+          <option value="conversation">普通对话</option>
+          <option value="streaming">流式回复</option>
+          <option value="toolSuccess">工具调用成功</option>
+          <option value="toolRetry">工具失败与重试</option>
+          <option value="agentHandoff">多 Agent handoff</option>
+          <option value="outOfOrder">乱序事件（原生）</option>
+          <option value="duplicate">重复事件（原生）</option>
+          <option value="invalid">非法字段（原生）</option>
+          <option value="version">未知版本（原生）</option>
+          <option value="oversized">超大 Payload（原生）</option>
+        </select>
+        <div class="actions">
+          <button id="send-sdk" type="button">通过 SDK 发布</button>
+          <button id="send-native" type="button">原生 postMessage</button>
+          <button id="lifecycle" type="button">SDK 生命周期</button>
+        </div>
+        <p id="status" class="status" role="status">等待发布。页面捕获表示消息已经发出，扩展接收与存储需在面板中确认。</p>
       </section>
-      <p class="status" role="status">SDK 发布场景将在协议阶段接入。</p>
+      <section aria-labelledby="collector-title">
+        <h2 id="collector-title">扩展采集器</h2>
+        <p id="collector" role="status">尚未检测采集器。</p>
+        <button id="check-collector" type="button">检测握手</button>
+      </section>
+      <section aria-labelledby="capture-title">
+        <h2 id="capture-title">页面消息捕获</h2>
+        <p id="counters" aria-live="polite"></p>
+        <button id="clear" type="button">清空页面捕获</button>
+        <pre id="output" tabindex="0" aria-label="事件、聚合结果及 SDK 统计"></pre>
+      </section>
     </main>
+    <script type="module" src="./index.ts"></script>
   </body>
 </html>

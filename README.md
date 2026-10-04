@@ -17,6 +17,8 @@ Install dependencies with `pnpm install --frozen-lockfile` using the Node.js ver
 
 Every package enters packaging through tsdown. The internal Nuxt SPA uses its explicitly approved Vite pipeline. The panel belongs to `packages/chrome-extensions`; the root playground is a private development workspace and is excluded from extension packaging.
 
-Load `packages/chrome-extensions/dist` as an unpacked extension, then open the playground's DevTools and select **Agent Trace**. The foundation stage supplies the panel shell; recording and SDK scenarios arrive with the protocol and ingestion stages.
+Load `packages/chrome-extensions/dist` as an unpacked extension, then open the playground's DevTools and select **Agent Trace**. The playground supplies SDK/native fixtures, lifecycle publishing, captured protocol events, aggregation and a collector handshake check. The extension currently supplies the panel shell; reception and recording follow in the ingestion stage.
+
+See [SDK usage and native integration](packages/sdk/README.md) and [playground acceptance steps](playground/README.md).
 
 Tests live in root `tests/<package>/` directories for `core`, `metadata`, `sdk`, `shared`, and `chrome-extensions`. They are added alongside the actual functions and schema behavior; empty entry points do not receive placeholder behavior tests. `tsconfig` supplies shared configuration and has no business unit tests.

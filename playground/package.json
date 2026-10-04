@@ -9,6 +9,8 @@
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
+    "@trace-script/core": "workspace:*",
+    "@trace-script/metadata": "workspace:*",
     "@trace-script/sdk": "workspace:*"
   },
   "devDependencies": {

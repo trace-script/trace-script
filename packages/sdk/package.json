@@ -40,6 +40,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@trace-script/core": "workspace:*",
     "@trace-script/metadata": "workspace:*",
     "@trace-script/shared": "workspace:*"
   },
