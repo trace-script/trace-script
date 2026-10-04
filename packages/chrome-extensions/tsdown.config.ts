@@ -1,5 +1,5 @@
 import { defineConfig } from 'tsdown'
-import { assembleExtension } from './scripts/build.ts'
+import { assembleExtension } from './scripts/build'
 
 export default defineConfig((options) => {
   const mode = process.env.TRACE_SCRIPT_BUILD_MODE === 'development' ? 'development' : 'production'

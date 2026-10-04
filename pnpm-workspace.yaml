@@ -40,6 +40,7 @@ catalogs:
   lint:
     '@antfu/eslint-config': ^9.5.1
     eslint: ^10.11.0
+    eslint-factory: ^0.1.2
     lint-staged: ^17.6.0
   test:
     '@vue/test-utils': ^2.4.6

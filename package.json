@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "private": true,
   "packageManager": "pnpm@11.24.0",
-  "description": "Trace Script \u2014 Visualize Agent event streams right in your browser extension. Trace every call with the same intuitive clarity as the Network panel.",
+  "description": "Trace Script — Visualize Agent event streams right in your browser extension. Trace every call with the same intuitive clarity as the Network panel.",
   "author": "lonewolfyx <https://github.com/lonewolfyx>",
   "license": "MIT",
   "scripts": {
@@ -28,6 +28,7 @@
     "@vitejs/plugin-vue": "catalog:build",
     "@vue/test-utils": "catalog:test",
     "eslint": "catalog:lint",
+    "eslint-factory": "catalog:lint",
     "happy-dom": "catalog:test",
     "jiti": "catalog:dev",
     "lint-staged": "catalog:lint",

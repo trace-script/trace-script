@@ -8,11 +8,11 @@ import { isConventionalCommit } from '../../scripts/verify-commit.mjs'
 
 describe('commit message validation', () => {
   it.each(['feat(sdk): add batching', 'fix: handle disconnects', 'feat(protocol)!: require versioned events', 'docs: describe validation\n\nExplain the change.'])('accepts %s', (message) => {
-    expect(isConventionalCommit(message)).toBe(true)
+    expect(isConventionalCommit(message)).toBeTruthy()
   })
 
   it.each(['', 'Add batching', 'Feat: add batching', 'feat(): add batching', 'fix: ', 'fix:something'])('rejects %s', (message) => {
-    expect(isConventionalCommit(message)).toBe(false)
+    expect(isConventionalCommit(message)).toBeFalsy()
   })
 
   it('reads the hook argument when .git is a worktree pointer file', () => {

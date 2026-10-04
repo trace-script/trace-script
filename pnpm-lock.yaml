@@ -60,6 +60,9 @@ catalogs:
     eslint:
       specifier: ^10.11.0
       version: 10.11.0
+    eslint-factory:
+      specifier: ^0.1.2
+      version: 0.1.2
     lint-staged:
       specifier: ^17.6.0
       version: 17.6.0
@@ -120,6 +123,12 @@ importers:
       eslint:
         specifier: catalog:lint
         version: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
+      eslint-factory:
+        specifier: catalog:lint
+        version: 0.1.2(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      eslint-flat-config-utils:
+        specifier: 3.2.0
+        version: 3.2.0
       happy-dom:
         specifier: catalog:test
         version: 20.14.5
@@ -2667,6 +2676,11 @@ packages:
     resolution: {integrity: sha512-JhYC+V7qEDiCDsbJcVP8fxNc62fk4+i91YLP/YvmVHlkaQ8Xo99olYN8MO5COdxl7onGlsrfZVONe5NYsZP1UA==}
     peerDependencies:
       eslint: ^9.5.0 || ^10.0.0
+
+  eslint-factory@0.1.2:
+    resolution: {integrity: sha512-0APUA89aVVxJ0BnP84Wbg1dx9co9ZixotdKjO0S0jz6uq51ev2JBNXpeu5do9oasEc9dn+v7wywUA2WBbmB/RA==}
+    peerDependencies:
+      eslint: ^9.0.0
 
   eslint-flat-config-utils@3.2.0:
     resolution: {integrity: sha512-PHgo1X5uqIorJONLVD9BIaOSdoYFD3z/AeJljdqDPlWVRpeCYkDbK9k0AXoYVqqNJr6FEYIEr5Rm2TSktLQcHw==}
@@ -7642,6 +7656,14 @@ snapshots:
     dependencies:
       '@eslint/compat': 2.1.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))
       eslint: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
+
+  eslint-factory@0.1.2(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3):
+    dependencies:
+      '@typescript-eslint/utils': 8.71.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      eslint: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
+    transitivePeerDependencies:
+      - supports-color
+      - typescript
 
   eslint-flat-config-utils@3.2.0:
     dependencies:

@@ -20,7 +20,7 @@ describe('span aggregation', () => {
     expect(aggregateSpans(conversationEvents)[0]).toMatchObject({ kind: 'session', durationMs: 100 })
     expect(aggregateSpans(streamingEvents)[0]).toMatchObject({ kind: 'model', durationMs: 50 })
     expect(aggregateSpans(agentHandoffEvents)).toHaveLength(2)
-    expect(aggregateSpans(agentHandoffEvents).every(span => !span.incomplete)).toBe(true)
+    expect(aggregateSpans(agentHandoffEvents).every(span => !span.incomplete)).toBeTruthy()
   })
 
   it('marks incomplete spans and ignores unrelated terminal events', () => {

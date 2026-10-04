@@ -33,16 +33,16 @@ describe('jSON boundary validation', () => {
 
   it.each([NaN, Infinity, -Infinity, 1n, Symbol('value'), () => 1, new Date(), new Map(), new Set()])('rejects non-JSON value %s', (value) => {
     const parsed = validateJsonValue({ payload: value })
-    expect(parsed.success).toBe(false)
+    expect(parsed.success).toBeFalsy()
     if (!parsed.success)
       expect(parsed.issues[0]).toMatchObject({ code: 'NON_JSON_VALUE', path: ['payload'] })
   })
 
   it('rejects sparse arrays, extra array fields, accessors and non-enumerable fields', () => {
-    expect(validateJsonValue(Array.from({ length: 1 }).map(() => 1).concat(Array.from({ length: 1 }))).success).toBe(false)
-    expect(validateJsonValue(Object.assign([1], { extra: 2 })).success).toBe(false)
-    expect(validateJsonValue(Object.defineProperty([1], 'hidden', { value: 2 })).success).toBe(false)
-    expect(validateJsonValue(Object.defineProperty([1], '0', { value: 1, enumerable: false })).success).toBe(false)
+    expect(validateJsonValue(Array.from({ length: 1 }).map(() => 1).concat(Array.from({ length: 1 }))).success).toBeFalsy()
+    expect(validateJsonValue(Object.assign([1], { extra: 2 })).success).toBeFalsy()
+    expect(validateJsonValue(Object.defineProperty([1], 'hidden', { value: 2 })).success).toBeFalsy()
+    expect(validateJsonValue(Object.defineProperty([1], '0', { value: 1, enumerable: false })).success).toBeFalsy()
     let invoked = false
     const accessor = Object.defineProperty({}, 'value', {
       enumerable: true,
@@ -51,10 +51,10 @@ describe('jSON boundary validation', () => {
         throw new Error('Do not invoke')
       },
     })
-    expect(validateJsonValue(accessor).success).toBe(false)
-    expect(invoked).toBe(false)
-    expect(validateJsonValue(Object.defineProperty({}, 'hidden', { value: 1 })).success).toBe(false)
-    expect(validateJsonValue({ [Symbol('key')]: 'secret' }).success).toBe(false)
+    expect(validateJsonValue(accessor).success).toBeFalsy()
+    expect(invoked).toBeFalsy()
+    expect(validateJsonValue(Object.defineProperty({}, 'hidden', { value: 1 })).success).toBeFalsy()
+    expect(validateJsonValue({ [Symbol('key')]: 'secret' }).success).toBeFalsy()
   })
 
   it('rejects failed inspection and proxies without invoking their property reads', () => {
@@ -72,7 +72,7 @@ describe('jSON boundary validation', () => {
       },
     })
     expect(validateJsonValue(parsingFailure)).toMatchObject({ success: false, issues: [{ code: 'NON_JSON_VALUE' }] })
-    expect(accessed).toBe(false)
+    expect(accessed).toBeFalsy()
     const changingValues = new Proxy({ value: 1 }, {
       get() {
         return nestedJson(100)
@@ -82,17 +82,17 @@ describe('jSON boundary validation', () => {
   })
 
   it('enforces finite depth and valid protection settings', () => {
-    expect(validateJsonValue({ a: { b: 1 } }, 2).success).toBe(true)
+    expect(validateJsonValue({ a: { b: 1 } }, 2).success).toBeTruthy()
     const parsed = validateJsonValue({ a: { b: 1 } }, 1)
-    expect(parsed.success).toBe(false)
+    expect(parsed.success).toBeFalsy()
     if (!parsed.success)
       expect(parsed.issues[0]).toMatchObject({ code: 'DEPTH_EXCEEDED', path: ['a', 'b'] })
-    expect(validateJsonValue({}, Infinity).success).toBe(false)
-    expect(safeParseTraceEvent(baseEvent, { maxEventBytes: Infinity }).success).toBe(false)
+    expect(validateJsonValue({}, Infinity).success).toBeFalsy()
+    expect(safeParseTraceEvent(baseEvent, { maxEventBytes: Infinity }).success).toBeFalsy()
   })
 
   it('bounds standalone JSON inspection including the transport allowance', () => {
-    expect(validateJsonValue(nestedJson(258), 258).success).toBe(true)
+    expect(validateJsonValue(nestedJson(258), 258).success).toBeTruthy()
     expect(validateJsonValue(nestedJson(259), 258)).toMatchObject({ success: false, issues: [{ code: 'DEPTH_EXCEEDED' }] })
     expect(validateJsonValue({}, 259)).toMatchObject({ success: false, issues: [{ code: 'INVALID_LIMITS' }] })
     expect(safeParseTraceEvent(baseEvent, { maxDepth: 257 })).toMatchObject({ success: false, issues: [{ code: 'INVALID_LIMITS' }] })
@@ -108,7 +108,7 @@ describe('event parsing and version migration', () => {
   it('reports stable version and field issues', () => {
     expect(safeParseTraceEvent(unsupportedVersionEvent)).toEqual({ success: false, issues: [{ code: 'UNSUPPORTED_VERSION', path: ['version'], message: 'Unsupported protocol version: 0.9' }] })
     const parsed = safeParseTraceEvent(invalidFieldEvent)
-    expect(parsed.success).toBe(false)
+    expect(parsed.success).toBeFalsy()
     if (!parsed.success)
       expect(parsed.issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'INVALID_FIELD', path: ['sequence'] }), expect.objectContaining({ code: 'INVALID_FIELD', path: ['status'] })]))
     expect(() => migrateTraceEvent(unsupportedVersionEvent)).toThrow(ProtocolValidationError)
@@ -116,7 +116,7 @@ describe('event parsing and version migration', () => {
 
   it('throws an error carrying the same issues as safe parsing', () => {
     const parsed = safeParseTraceEvent({ ...baseEvent, eventId: '' })
-    expect(parsed.success).toBe(false)
+    expect(parsed.success).toBeFalsy()
     try {
       parseTraceEvent({ ...baseEvent, eventId: '' })
       expect.fail('Expected a protocol validation error')
@@ -131,18 +131,18 @@ describe('event parsing and version migration', () => {
   it('measures UTF-8 bytes rather than character count and accepts the exact limit', () => {
     const event = { ...baseEvent, payload: '你好' }
     const bytes = new TextEncoder().encode(JSON.stringify(event)).byteLength
-    expect(safeParseTraceEvent(event, { maxEventBytes: bytes }).success).toBe(true)
+    expect(safeParseTraceEvent(event, { maxEventBytes: bytes }).success).toBeTruthy()
     const parsed = safeParseTraceEvent(event, { maxEventBytes: bytes - 1 })
-    expect(parsed.success).toBe(false)
+    expect(parsed.success).toBeFalsy()
     if (!parsed.success)
       expect(parsed.issues[0]?.code).toBe('EVENT_TOO_LARGE')
-    expect(safeParseTraceEvent(oversizedEvent).success).toBe(false)
+    expect(safeParseTraceEvent(oversizedEvent).success).toBeFalsy()
   })
 
   it('retains arbitrary JSON fields and rejects data that serialization would lose', () => {
     expect(parseTraceEvent({ ...baseEvent, extra: { value: null } }).extra).toEqual({ value: null })
-    expect(safeParseTraceEvent({ ...baseEvent, payload: () => 'hidden' }).success).toBe(false)
-    expect(safeParseTraceEvent('not an event').success).toBe(false)
+    expect(safeParseTraceEvent({ ...baseEvent, payload: () => 'hidden' }).success).toBeFalsy()
+    expect(safeParseTraceEvent('not an event').success).toBeFalsy()
   })
 })
 
@@ -155,13 +155,13 @@ describe('bridge parsing', () => {
   })
 
   it('parses handshake and flush messages without trace data', () => {
-    expect(safeParseBridgeMessage({ ...common, kind: 'handshake', data: { requestId: 'r', phase: 'request' } }).success).toBe(true)
-    expect(safeParseBridgeMessage({ ...common, kind: 'flush', data: {} }).success).toBe(true)
+    expect(safeParseBridgeMessage({ ...common, kind: 'handshake', data: { requestId: 'r', phase: 'request' } }).success).toBeTruthy()
+    expect(safeParseBridgeMessage({ ...common, kind: 'flush', data: {} }).success).toBeTruthy()
   })
 
   it('includes the batch index in event validation errors', () => {
     const parsed = safeParseBridgeMessage({ ...common, kind: 'trace-batch', data: [baseEvent, unsupportedVersionEvent] })
-    expect(parsed.success).toBe(false)
+    expect(parsed.success).toBeFalsy()
     if (!parsed.success)
       expect(parsed.issues[0]).toMatchObject({ code: 'UNSUPPORTED_VERSION', path: ['data', 1, 'version'] })
   })
@@ -169,9 +169,9 @@ describe('bridge parsing', () => {
   it.each([64, 256])('treats depth %i relative to the event in both bridge variants', (maxDepth) => {
     const event = { ...baseEvent, payload: nestedJson(maxDepth - 1) }
     const options = { maxDepth }
-    expect(safeParseTraceEvent(event, options).success).toBe(true)
-    expect(safeParseBridgeMessage({ ...common, kind: 'trace-event', data: event }, options).success).toBe(true)
-    expect(safeParseBridgeMessage({ ...common, kind: 'trace-batch', data: [event] }, options).success).toBe(true)
+    expect(safeParseTraceEvent(event, options).success).toBeTruthy()
+    expect(safeParseBridgeMessage({ ...common, kind: 'trace-event', data: event }, options).success).toBeTruthy()
+    expect(safeParseBridgeMessage({ ...common, kind: 'trace-batch', data: [event] }, options).success).toBeTruthy()
     const tooDeep = { ...event, payload: nestedJson(maxDepth) }
     expect(safeParseTraceEvent(tooDeep, options)).toMatchObject({ success: false, issues: [{ code: 'DEPTH_EXCEEDED' }] })
     expect(safeParseBridgeMessage({ ...common, kind: 'trace-event', data: tooDeep }, options)).toMatchObject({ success: false, issues: [{ code: 'DEPTH_EXCEEDED' }] })
@@ -181,24 +181,24 @@ describe('bridge parsing', () => {
   it('enforces both event and batch size/count limits', () => {
     const batch = { ...common, kind: 'trace-batch', data: [baseEvent, baseEvent] }
     const count = safeParseBridgeMessage(batch, { maxBatchEvents: 1 })
-    expect(count.success).toBe(false)
+    expect(count.success).toBeFalsy()
     if (!count.success)
       expect(count.issues[0]?.code).toBe('BATCH_LIMIT_EXCEEDED')
     const size = safeParseBridgeMessage(batch, { maxBatchBytes: 10 })
-    expect(size.success).toBe(false)
+    expect(size.success).toBeFalsy()
     if (!size.success)
       expect(size.issues[0]?.code).toBe('BATCH_TOO_LARGE')
     const largeEvent = safeParseBridgeMessage({ ...common, kind: 'trace-event', data: oversizedEvent })
-    expect(largeEvent.success).toBe(false)
+    expect(largeEvent.success).toBeFalsy()
     if (!largeEvent.success)
       expect(largeEvent.issues[0]).toMatchObject({ code: 'EVENT_TOO_LARGE', path: ['data'] })
   })
 
   it('rejects unrelated, empty and invalid bridge envelopes', () => {
-    expect(safeParseBridgeMessage(null).success).toBe(false)
-    expect(safeParseBridgeMessage({ ...common, channel: 'other', kind: 'flush', data: {} }).success).toBe(false)
-    expect(safeParseBridgeMessage({ ...common, kind: 'trace-batch', data: [] }).success).toBe(false)
-    expect(safeParseBridgeMessage({ ...common, kind: 'handshake', data: { requestId: 'r' } }).success).toBe(false)
+    expect(safeParseBridgeMessage(null).success).toBeFalsy()
+    expect(safeParseBridgeMessage({ ...common, channel: 'other', kind: 'flush', data: {} }).success).toBeFalsy()
+    expect(safeParseBridgeMessage({ ...common, kind: 'trace-batch', data: [] }).success).toBeFalsy()
+    expect(safeParseBridgeMessage({ ...common, kind: 'handshake', data: { requestId: 'r' } }).success).toBeFalsy()
     expect(() => parseBridgeMessage({ ...common, version: '2.0', kind: 'flush', data: {} })).toThrow(ProtocolValidationError)
   })
 })

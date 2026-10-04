@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.1.0",
   "private": true,
-  "description": "Trace Script \u2014 Visualize Agent event streams right in your browser extension. Trace every call with the same intuitive clarity as the Network panel.",
+  "description": "Trace Script - Visualize Agent event streams right in your browser extension. Trace every call with the same intuitive clarity as the Network panel.",
   "author": "lonewolfyx <https://github.com/lonewolfyx>",
   "license": "MIT",
   "homepage": "https://github.com/trace-script/trace-script#readme",

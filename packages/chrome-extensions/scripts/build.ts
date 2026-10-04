@@ -1,9 +1,9 @@
-import type { ExtensionBuildMode } from '../extension/manifest/create-manifest.ts'
+import type { ExtensionBuildMode } from '../extension/manifest/create-manifest'
 import { execFileSync } from 'node:child_process'
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import { createManifest } from '../extension/manifest/create-manifest.ts'
-import { preparePanelHtml } from './prepare-panel-html.ts'
+import { createManifest } from '../extension/manifest/create-manifest'
+import { preparePanelHtml } from './prepare-panel-html'
 
 export async function assembleExtension(mode: ExtensionBuildMode) {
   const packageDirectory = fileURLToPath(new URL('../', import.meta.url))
