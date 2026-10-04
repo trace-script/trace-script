@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "private": true,
   "packageManager": "pnpm@11.24.0",
-  "description": "Trace Script — Visualize Agent event streams right in your browser extension. Trace every call with the same intuitive clarity as the Network panel.",
+  "description": "Trace Script \u2014 Visualize Agent event streams right in your browser extension. Trace every call with the same intuitive clarity as the Network panel.",
   "author": "lonewolfyx <https://github.com/lonewolfyx>",
   "license": "MIT",
   "scripts": {
@@ -30,7 +30,7 @@
   },
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged",
-    "commit-msg": "npx verify-git-commit"
+    "commit-msg": "node scripts/verify-commit.mjs \"$1\""
   },
   "lint-staged": {
     "*": "eslint --fix"
