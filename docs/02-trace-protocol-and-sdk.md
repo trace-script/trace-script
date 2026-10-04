@@ -20,7 +20,7 @@
 第一版事件应至少包含：
 
 ```ts
-interface TraceEventEnvelope<T = unknown> {
+interface TraceEventEnvelope {
   version: '1.0'
   eventId: string
   traceId: string
@@ -35,7 +35,7 @@ interface TraceEventEnvelope<T = unknown> {
   agent?: TraceActor
   model?: TraceModel
   attributes?: Record<string, JsonValue>
-  payload?: T
+  payload?: JsonValue
   error?: TraceError
   metrics?: TraceMetrics
 }
@@ -69,13 +69,18 @@ interface TraceEventEnvelope<T = unknown> {
 网页投递消息使用额外的 Channel 信封，避免与页面中其他 `message` 事件冲突：
 
 ```ts
-interface TraceBridgeMessage {
+type TraceBridgeMessage = {
   channel: 'trace-script'
   version: '1.0'
-  kind: 'trace-event' | 'trace-batch' | 'handshake' | 'flush'
-  data: unknown
-}
+} & (
+  | { kind: 'trace-event', data: TraceEventEnvelope }
+  | { kind: 'trace-batch', data: TraceEventEnvelope[] }
+  | { kind: 'handshake', data: { requestId: string, phase: 'request' | 'response', available?: boolean } }
+  | { kind: 'flush', data: Record<string, never> }
+)
 ```
+
+批次必须包含 1–100 个事件。`flush.data` 必须为空对象；握手响应以 `requestId` 对应请求，`available` 表示接收端是否可用。公共类型由 `metadata` 的 Zod Schema 推导，示例用于说明字段含义。
 
 ## 4. 执行任务
 
@@ -169,3 +174,34 @@ Fixtures 后续同时用于 `core`、`sdk` 和 `chrome-extensions` 中的接收�
 | 页面数据包含密钥或隐私 | SDK 提供可选脱敏钩子，扩展再次执行保护规则 |
 | 时间戳不可靠 | 同时记录页面时间和扩展接收时间 |
 | 协议升级破坏历史数据 | 从第一版建立版本和迁移入口 |
+
+## 8. 第一版实现语义
+
+### 8.1 JSON 边界与限制
+
+`core` 的公开解析入口先检查原始输入，再交由 Schema 校验结构化克隆后的值，避免代理对象在检查与解析时返回不同字段。合法 JSON 包含 `null`，只接受有限数字、字符串、布尔值、数组和普通对象。循环引用、代理对象、稀疏数组、访问器、Symbol 字段、对象中的非枚举字段，以及数组的额外字段或非枚举元素均拒绝；共享对象引用不视为循环。未识别的事件、Actor、Model、Error 和 Metrics 字段在满足 JSON 约束后保留。
+
+默认每个事件最多 1 MiB，每个桥接消息最多 2 MiB、100 个事件，按 UTF-8 字节计数。深度以事件根对象为第 0 层，默认上限 64，可配置为 1–256；桥接信封与批次数组的两层包装不占用事件深度。独立的 `validateJsonValue` 检查上限为 258，以容纳完整桥接消息，事件解析仍执行原始事件深度限制。保护参数非法时返回 `INVALID_LIMITS`，不会关闭限制。
+
+校验结果使用 `success` 判别；错误包含稳定的 `code`、字段 `path` 和 `message`。抛出式入口使用 `ProtocolValidationError` 携带相同错误信息。UTC 时间在解析后统一为带毫秒的 ISO 字符串。当前迁移入口只接受 `1.0` 并执行相同校验；未知版本返回 `UNSUPPORTED_VERSION`。
+
+### 8.2 ID、排序与关系
+
+- `sessionId` 标识会话，事件以 `sessionId` 和 `traceId` 共同确定所属 Trace。`eventId` 在接收的事件集合内唯一；SDK 默认生成独立 ID。
+- 排序先按 `sessionId`、`traceId` 分组，再比较 Trace 内的 `sequence`、`timestamp` 和 `eventId`。排序返回新数组，不改变输入顺序。
+- 相同 `eventId` 只保留首次接收的事件，累计重复次数。JSON 对象字段的插入顺序不影响相等判断；数组顺序或实际字段内容不同则记录冲突 ID。
+- `parentId` 必须指向同一会话、同一 Trace 的事件。缺失父事件、跨上下文父事件、自引用和多事件父关系环中的成员都进入 `orphanEventIds`。原始事件保留；连接到环成员的其他子事件不会被误标为环成员。
+
+### 8.3 Span 与消息聚合
+
+Session、Model、Tool、Agent 和 Span 的开始事件各建立一条记录。结束事件通过 `parentId` 指向相同分类的开始事件；不同上下文或分类的结束事件不关闭记录。首个排序后的结束事件决定最终状态，后续结束事件的 ID 仍保留。没有匹配结束事件的记录保持 `incomplete`。
+
+错误类型或 `status: 'error'` 优先产生错误状态，其次保留取消状态，其余匹配结束事件为成功。显式 `durationMs` 优先；否则使用结束与开始时间的差值，负值归零并标记 `timingConflict`。这些函数接收已通过协议解析的事件，完整原始事件由调用方保留。
+
+助手消息的 delta 通过 `parentId` 关联开始事件，按事件排序追加。完成事件中存在字符串 `payload.content` 时以该文本为准，包括空字符串；没有完成文本时使用累计 delta。保留参与事件 ID；完成文本与非空 delta 不一致时标记 `contentMismatch`。其他会话或 Trace 的片段不会进入该消息。
+
+### 8.4 验收与消融状态
+
+根目录 `tests/metadata/`、`tests/core/` 覆盖 Schema、JSON 边界、版本错误、字节与深度边界、排序去重、父关系环、Span 配对与流式聚合；`fixtures/protocol.ts` 提供后续 SDK 和扩展测试复用的固定场景。
+
+当前代码与测试待实际运行。候选消融包括：移除原始 JSON 检查后比较循环、访问器和稀疏数组的诊断；移除结构化克隆后比较代理对象改变字段时的深度校验；改用直接序列化比较后观察字段插入顺序的重复判定；移除父关系环诊断后比较孤立事件集合；移除桥接深度补偿后比较相同深度事件的独立与桥接解析结果。上述实验尚未执行，不能作为已通过的验证证据。

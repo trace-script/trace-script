@@ -35,7 +35,8 @@
     "packages/chrome-extensions/extension/**/*.ts",
     "playground/**/*.ts",
     "tests/**/*.ts",
-    "scripts/**/*.mjs"
+    "scripts/**/*.mjs",
+    "fixtures/**/*.ts"
   ],
   "exclude": [
     "node_modules",

@@ -23,6 +23,9 @@
     "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "zod": "catalog:validation"
+  },
   "devDependencies": {
     "@trace-script/tsconfig": "workspace:*",
     "tsdown": "catalog:build",

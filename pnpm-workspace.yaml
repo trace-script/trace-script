@@ -51,3 +51,5 @@ catalogs:
   ui:
     class-variance-authority: ^0.7.1
     vue: ^3.5.43
+  validation:
+    zod: ^4.6.5
