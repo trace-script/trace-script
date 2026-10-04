@@ -1,0 +1,48 @@
+{
+  "extends": "./packages/tsconfig/base.json",
+  "compilerOptions": {
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "paths": {
+      "@trace-script/core": [
+        "./packages/core/index.ts"
+      ],
+      "@trace-script/metadata": [
+        "./packages/metadata/index.ts"
+      ],
+      "@trace-script/sdk": [
+        "./packages/sdk/index.ts"
+      ],
+      "@trace-script/shared": [
+        "./packages/shared/index.ts"
+      ]
+    },
+    "types": [
+      "node",
+      "vitest/importMeta",
+      "chrome"
+    ],
+    "allowJs": true,
+    "noEmit": true
+  },
+  "include": [
+    "*.ts",
+    "packages/*/*.ts",
+    "packages/*/src/**/*.ts",
+    "packages/chrome-extensions/extension/**/*.ts",
+    "playground/**/*.ts",
+    "tests/**/*.ts",
+    "scripts/**/*.mjs"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/dist/**",
+    "**/dist-dev/**",
+    "**/.nuxt/**",
+    "**/.output/**",
+    "packages/chrome-extensions/panel/**"
+  ]
+}

@@ -8,17 +8,28 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
     }
   },
-  "main": "./dist/index.cjs",
+  "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index.d.mts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
-    "prepack": "pnpm run build"
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@trace-script/metadata": "workspace:*",
+    "@trace-script/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@trace-script/tsconfig": "workspace:*",
+    "tsdown": "catalog:build",
+    "typescript": "catalog:dev"
   }
 }

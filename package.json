@@ -10,13 +10,25 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint --fix",
-    "prepare": "simple-git-hooks"
+    "prepare": "simple-git-hooks",
+    "build": "pnpm -r --filter './packages/**' run build && pnpm --filter @trace-script/playground build",
+    "dev": "pnpm --filter @trace-script/playground dev",
+    "dev:panel": "pnpm --filter @trace-script/chrome-extensions dev:panel",
+    "build:dev": "pnpm -r --filter './packages/**' run build && pnpm --filter @trace-script/chrome-extensions build:dev",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json && pnpm -r --filter './packages/**' --if-present run typecheck && pnpm --filter @trace-script/chrome-extensions typecheck:panel",
+    "test": "pnpm --filter @trace-script/chrome-extensions prepare:panel && vitest run",
+    "test:watch": "pnpm --filter @trace-script/chrome-extensions prepare:panel && vitest",
+    "package:chrome": "pnpm --filter @trace-script/chrome-extensions package:chrome"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:lint",
     "@trace-script/tsconfig": "workspace:*",
+    "@types/chrome": "catalog:types",
     "@types/node": "catalog:types",
+    "@vitejs/plugin-vue": "catalog:build",
+    "@vue/test-utils": "catalog:test",
     "eslint": "catalog:lint",
+    "happy-dom": "catalog:test",
     "jiti": "catalog:dev",
     "lint-staged": "catalog:lint",
     "simple-git-hooks": "catalog:dev",
@@ -26,7 +38,9 @@
     "typescript": "catalog:dev",
     "verify-git-commit": "catalog:dev",
     "vite": "catalog:build",
-    "vitest": "catalog:test"
+    "vitest": "catalog:test",
+    "vue": "catalog:ui",
+    "vue-tsc": "catalog:dev"
   },
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged",

@@ -3,5 +3,15 @@
   "extends": [
     "@trace-script/tsconfig/base.json"
   ],
-  "compilerOptions": {}
+  "compilerOptions": {
+    "types": [
+      "chrome",
+      "node"
+    ]
+  },
+  "include": [
+    "extension/**/*.ts",
+    "scripts/**/*.ts",
+    "tsdown.config.ts"
+  ]
 }

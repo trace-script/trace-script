@@ -1,0 +1,19 @@
+{
+  "name": "@trace-script/playground",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsdown",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "dependencies": {
+    "@trace-script/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "tsdown": "catalog:build",
+    "typescript": "catalog:dev",
+    "vite": "catalog:build"
+  }
+}

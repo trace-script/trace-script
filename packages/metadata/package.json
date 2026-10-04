@@ -1,14 +1,16 @@
 {
   "name": "@trace-script/metadata",
   "type": "module",
+  "version": "0.0.0",
   "private": true,
   "author": "lonewolfyx <https://github.com/lonewolfyx>",
   "license": "MIT",
   "sideEffects": false,
   "exports": {
-    ".": "./dist/index.mjs",
-    "./*": "./dist/*",
-    "./package.json": "./package.json"
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
   },
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
@@ -18,6 +20,12 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "dev": "tsdown --watch"
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@trace-script/tsconfig": "workspace:*",
+    "tsdown": "catalog:build",
+    "typescript": "catalog:dev"
   }
 }

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trace Script Playground</title>
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">TRACE SCRIPT / PLAYGROUND</p>
+      <h1>Agent Trace 调试工作台</h1>
+      <p>本地开发入口已经就绪。安装构建的扩展后，打开 DevTools 中的 Agent Trace 面板。</p>
+      <section aria-labelledby="verification-title">
+        <h2 id="verification-title">第一阶段验收</h2>
+        <ol>
+          <li>执行根目录 <code>pnpm build</code>。</li>
+          <li>在 Chrome 扩展管理中加载 <code>packages/chrome-extensions/dist</code>。</li>
+          <li>打开此页面的 DevTools，检查 Agent Trace 面板和构建版本。</li>
+          <li>关闭并重新打开 DevTools，检查面板仍可正常显示。</li>
+        </ol>
+      </section>
+      <p class="status" role="status">SDK 发布场景将在协议阶段接入。</p>
+    </main>
+  </body>
+</html>

@@ -1,10 +1,12 @@
 {
   "name": "@trace-script/chrome-extensions",
   "type": "module",
-  "description": "Trace Script — Visualize Agent event streams right in your browser extension. Trace every call with the same intuitive clarity as the Network panel.",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Trace Script \u2014 Visualize Agent event streams right in your browser extension. Trace every call with the same intuitive clarity as the Network panel.",
   "author": "lonewolfyx <https://github.com/lonewolfyx>",
   "license": "MIT",
-  "homepage": "https://github.com/trace-script/trace-script/tree/main/packages/chrome-extensions#readme",
+  "homepage": "https://github.com/trace-script/trace-script#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/trace-script/trace-script.git",
@@ -22,6 +24,29 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "dev": "tsdown --watch"
+    "build:dev": "TRACE_SCRIPT_BUILD_MODE=development tsdown",
+    "dev": "TRACE_SCRIPT_BUILD_MODE=development tsdown --watch",
+    "dev:panel": "nuxt dev panel",
+    "typecheck": "tsc --noEmit",
+    "typecheck:panel": "nuxt typecheck panel",
+    "package:chrome": "pnpm build && tsx scripts/package.ts",
+    "prepare:panel": "nuxt prepare panel"
+  },
+  "dependencies": {
+    "class-variance-authority": "catalog:ui",
+    "vue": "catalog:ui"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "catalog:build",
+    "@trace-script/tsconfig": "workspace:*",
+    "@types/chrome": "catalog:types",
+    "@types/node": "catalog:types",
+    "nuxt": "catalog:build",
+    "shadcn-nuxt": "catalog:build",
+    "tailwindcss": "catalog:build",
+    "tsdown": "catalog:build",
+    "tsx": "catalog:dev",
+    "typescript": "catalog:dev",
+    "vue-tsc": "catalog:dev"
   }
 }

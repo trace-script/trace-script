@@ -1,4 +1,3 @@
-import type { Linter } from 'eslint'
 import antfu from '@antfu/eslint-config'
 
 const config = antfu({
@@ -11,6 +10,6 @@ const config = antfu({
     'antfu/top-level-function': 'off',
     'regexp/no-unused-capturing-group': 'off',
   },
-}) as Linter.Config
+})
 
 export default config

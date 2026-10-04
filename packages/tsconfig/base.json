@@ -8,10 +8,10 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "declarationMap": false,
-    "types": [
-      "node",
-      "vitest/client",
-      "tsdown/client"
+    "types": [],
+    "lib": [
+      "ESNext",
+      "DOM"
     ]
   }
 }

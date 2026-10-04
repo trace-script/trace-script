@@ -2,7 +2,10 @@ import { defineConfig } from 'tsdown'
 
 export default defineConfig({
   entry: ['index.ts'],
-  dts: true,
-  clean: true,
+  platform: 'browser',
+  target: 'chrome120',
   format: 'esm',
+  dts: false,
+  clean: true,
+  copy: ['index.html', 'style.css'],
 })

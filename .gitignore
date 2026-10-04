@@ -11,3 +11,13 @@ node_modules
 temp
 cache
 .eslintcache
+
+.nuxt
+.output
+dist-dev
+.artifacts
+test-results
+playwright-report
+
+.build
+artifacts
