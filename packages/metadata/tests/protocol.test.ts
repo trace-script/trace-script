@@ -1,4 +1,4 @@
-import type { JsonValue, TraceEventEnvelope, TraceStatus } from '@trace-script/metadata'
+import type { JsonValue, TraceEventEnvelope, TraceStatus } from '@/'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 import {
   DEFAULT_PROTOCOL_LIMITS,

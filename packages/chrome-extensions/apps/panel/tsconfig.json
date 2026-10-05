@@ -4,5 +4,5 @@
     { "path": "./.nuxt/tsconfig.node.json" },
     { "path": "./.nuxt/tsconfig.shared.json" }
   ],
-  "files": []
+  "include": ["app/**/*.ts", "app/**/*.vue"]
 }

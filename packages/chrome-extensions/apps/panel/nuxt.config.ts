@@ -1,6 +1,6 @@
 import tailwindcss from '@tailwindcss/vite'
 import { defineNuxtConfig } from 'nuxt/config'
-import { version } from '../package.json'
+import { version } from '../../package.json'
 
 export default defineNuxtConfig({
   compatibilityDate: '2026-10-04',
