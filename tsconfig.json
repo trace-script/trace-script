@@ -6,34 +6,11 @@
       "DOM",
       "DOM.Iterable"
     ],
-    "paths": {
-      "@/*": [
-        "./packages/core/src/*"
-      ],
-      "@trace-script/core": [
-        "./packages/core/src/index.ts"
-      ],
-      "@trace-script/metadata": [
-        "./packages/metadata/src/index.ts"
-      ],
-      "@trace-script/sdk": [
-        "./packages/sdk/src/index.ts"
-      ],
-      "@trace-script/shared": [
-        "./packages/shared/src/index.ts"
-      ]
-    },
     "types": [
-      "node",
-      "vitest/importMeta",
-      "chrome"
+      "node"
     ],
     "allowJs": true,
     "noEmit": true
   },
-  "include": [
-    "packages/*/src/**/*.ts",
-    "scripts",
-    "fixtures"
-  ]
+  "include": ["scripts", "fixtures"]
 }
