@@ -13,7 +13,7 @@ export default defineConfig((options) => {
     outDir: '.build/extension',
     platform: 'browser',
     target: 'chrome120',
-    format: 'esm',
+
     outExtensions: () => ({ js: '.js' }),
     dts: false,
     clean: true,

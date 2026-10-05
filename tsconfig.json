@@ -7,17 +7,20 @@
       "DOM.Iterable"
     ],
     "paths": {
+      "@/*": [
+        "./packages/core/src/*"
+      ],
       "@trace-script/core": [
-        "./packages/core/index.ts"
+        "./packages/core/src/index.ts"
       ],
       "@trace-script/metadata": [
-        "./packages/metadata/index.ts"
+        "./packages/metadata/src/index.ts"
       ],
       "@trace-script/sdk": [
-        "./packages/sdk/index.ts"
+        "./packages/sdk/src/index.ts"
       ],
       "@trace-script/shared": [
-        "./packages/shared/index.ts"
+        "./packages/shared/src/index.ts"
       ]
     },
     "types": [
@@ -29,21 +32,8 @@
     "noEmit": true
   },
   "include": [
-    "*.ts",
-    "packages/*/*.ts",
     "packages/*/src/**/*.ts",
-    "packages/chrome-extensions/extension/**/*.ts",
-    "playground/**/*.ts",
-    "tests/**/*.ts",
-    "scripts/**/*.mjs",
-    "fixtures/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "**/dist/**",
-    "**/dist-dev/**",
-    "**/.nuxt/**",
-    "**/.output/**",
-    "packages/chrome-extensions/panel/**"
+    "scripts",
+    "fixtures"
   ]
 }

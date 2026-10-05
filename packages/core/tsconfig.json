@@ -5,8 +5,8 @@
   ],
   "compilerOptions": {
     "paths": {
-      "@trace-script/metadata": ["../metadata/index.ts"],
-      "@trace-script/shared": ["../shared/index.ts"]
+      "@/*": ["./src/*"]
     }
-  }
+  },
+  "include": ["src", "tests"]
 }

@@ -1,0 +1,55 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, sans-serif;
+  color: #e6edf3;
+  background: #0d1117;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 760px;
+  margin: 72px auto;
+  padding: 0 28px;
+}
+
+h1 {
+  font-size: 36px;
+  letter-spacing: -0.03em;
+}
+
+p,
+li {
+  line-height: 1.8;
+  color: #a9b5c5;
+}
+
+.eyebrow {
+  color: #74c7ec;
+  font: 12px monospace;
+  letter-spacing: 0.15em;
+}
+
+section {
+  margin: 32px 0;
+  padding: 20px 28px;
+  border: 1px solid #263142;
+  border-radius: 12px;
+  background: #141b26;
+}
+
+h2 {
+  margin-top: 0;
+  font-size: 18px;
+}
+
+code {
+  color: #b9dfc9;
+}
+
+.status {
+  border-left: 3px solid #74c7ec;
+  padding-left: 16px;
+}

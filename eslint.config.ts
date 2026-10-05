@@ -1,10 +1,13 @@
 import antfu from '@antfu/eslint-config'
 import { createSimplePlugin } from 'eslint-factory'
 
-const config: ReturnType<typeof antfu> = antfu({
+export default antfu({
   type: 'lib',
   pnpm: true,
   typescript: true,
+  formatters: {
+    css: 'prettier',
+  },
   test: {
     overrides: {
       'test/padding-around-after-all-blocks': 'error',
@@ -44,5 +47,3 @@ const config: ReturnType<typeof antfu> = antfu({
     }
   },
 }))
-
-export default config

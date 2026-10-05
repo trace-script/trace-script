@@ -16,8 +16,8 @@
     "dev:panel": "pnpm --filter @trace-script/chrome-extensions dev:panel",
     "build:dev": "pnpm -r --filter './packages/**' run build && pnpm --filter @trace-script/chrome-extensions build:dev",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json && pnpm -r --filter './packages/**' --if-present run typecheck && pnpm --filter @trace-script/chrome-extensions typecheck:panel",
-    "test": "pnpm --filter @trace-script/chrome-extensions prepare:panel && vitest run",
-    "test:watch": "pnpm --filter @trace-script/chrome-extensions prepare:panel && vitest",
+    "test": "vitest",
+    "test:cov": "vitest --coverage",
     "package:chrome": "pnpm --filter @trace-script/chrome-extensions package:chrome"
   },
   "devDependencies": {
@@ -26,9 +26,11 @@
     "@types/chrome": "catalog:types",
     "@types/node": "catalog:types",
     "@vitejs/plugin-vue": "catalog:build",
+    "@vitest/coverage-v8": "catalog:test",
     "@vue/test-utils": "catalog:test",
     "eslint": "catalog:lint",
     "eslint-factory": "catalog:lint",
+    "eslint-plugin-format": "catalog:lint",
     "happy-dom": "catalog:test",
     "jiti": "catalog:dev",
     "lint-staged": "catalog:lint",

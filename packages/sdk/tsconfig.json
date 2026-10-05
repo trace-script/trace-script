@@ -3,5 +3,10 @@
   "extends": [
     "@trace-script/tsconfig/base.json"
   ],
-  "compilerOptions": {}
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src"]
 }
