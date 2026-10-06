@@ -8,17 +8,18 @@
   "author": "lonewolfyx <https://github.com/lonewolfyx>",
   "license": "MIT",
   "scripts": {
+    "dev": "turbo run dev",
+    "dev:panel": "turbo run dev:panel",
+    "build": "turbo run build",
+    "build:dev": "turbo run build && turbo run build:dev --filter=@trace-script/chrome-extensions",
+    "package:chrome": "pnpm --filter @trace-script/chrome-extensions package:chrome",
+    "typecheck": "turbo run typecheck typecheck:root && turbo run typecheck:panel --filter=@trace-script/chrome-extensions",
+    "typecheck:root": "vue-tsc --noEmit -p tsconfig.json",
+    "test:cov": "vitest --coverage",
+    "test": "vitest",
     "lint": "eslint .",
     "lint:fix": "eslint --fix",
-    "prepare": "simple-git-hooks",
-    "build": "pnpm -r --filter './packages/**' run build && pnpm --filter @trace-script/playground build",
-    "dev": "pnpm --filter @trace-script/playground dev",
-    "dev:panel": "pnpm --filter @trace-script/chrome-extensions dev:panel",
-    "build:dev": "pnpm -r --filter './packages/**' run build && pnpm --filter @trace-script/chrome-extensions build:dev",
-    "typecheck": "vue-tsc --noEmit -p tsconfig.json && pnpm -r --filter './packages/**' --if-present run typecheck && pnpm --filter @trace-script/chrome-extensions typecheck:panel",
-    "test": "vitest",
-    "test:cov": "vitest --coverage",
-    "package:chrome": "pnpm --filter @trace-script/chrome-extensions package:chrome"
+    "prepare": "simple-git-hooks"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:lint",
