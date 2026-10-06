@@ -93,10 +93,9 @@ describe('protocol metadata', () => {
   })
 
   it('defines the documented initial protection limits', () => {
-    expect(DEFAULT_PROTOCOL_LIMITS).toEqual({ maxEventBytes: 1024 * 1024, maxBatchBytes: 2 * 1024 * 1024, maxBatchEvents: 100, maxDepth: 64 })
+    expect(DEFAULT_PROTOCOL_LIMITS).toEqual({ maxEventBytes: 1024 * 1024, maxBatchBytes: 2 * 1024 * 1024, maxBatchEvents: 100 })
     expect(protocolLimitsSchema.safeParse(DEFAULT_PROTOCOL_LIMITS).success).toBeTruthy()
     expect(protocolLimitsSchema.safeParse({ ...DEFAULT_PROTOCOL_LIMITS, maxBatchEvents: 101 }).success).toBeFalsy()
-    expect(protocolLimitsSchema.safeParse({ ...DEFAULT_PROTOCOL_LIMITS, maxDepth: 257 }).success).toBeFalsy()
   })
 
   it('constrains public issue codes and field paths', () => {

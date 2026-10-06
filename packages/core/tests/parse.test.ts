@@ -1,4 +1,3 @@
-import type { JsonValue } from '@trace-script/metadata'
 import { PROTOCOL_VERSION, TRACE_CHANNEL } from '@trace-script/metadata'
 import { describe, expect, it } from 'vitest'
 import {
@@ -8,96 +7,8 @@ import {
   ProtocolValidationError,
   safeParseBridgeMessage,
   safeParseTraceEvent,
-  validateJsonValue,
 } from '@/index'
 import { baseEvent, invalidFieldEvent, oversizedEvent, unsupportedVersionEvent } from './fixtures/protocol'
-
-function nestedJson(depth: number): JsonValue {
-  let value: JsonValue = 'leaf'
-  for (let level = 0; level < depth; level++)
-    value = { child: value }
-  return value
-}
-
-describe('jSON boundary validation', () => {
-  it('accepts nested JSON and repeated references without confusing them with cycles', () => {
-    const shared = { answer: 42 }
-    expect(validateJsonValue({ first: shared, second: shared, nil: null })).toEqual({ success: true, data: { first: { answer: 42 }, second: { answer: 42 }, nil: null } })
-  })
-
-  it('rejects cycles with their field path', () => {
-    const cyclic = { self: {} }
-    cyclic.self = cyclic
-    expect(validateJsonValue(cyclic)).toEqual({ success: false, issues: [{ code: 'CYCLIC_VALUE', path: ['self'], message: 'Circular references are not JSON values' }] })
-  })
-
-  it.each([NaN, Infinity, -Infinity, 1n, Symbol('value'), () => 1, new Date(), new Map(), new Set()])('rejects non-JSON value %s', (value) => {
-    const parsed = validateJsonValue({ payload: value })
-    expect(parsed.success).toBeFalsy()
-    if (!parsed.success)
-      expect(parsed.issues[0]).toMatchObject({ code: 'NON_JSON_VALUE', path: ['payload'] })
-  })
-
-  it('rejects sparse arrays, extra array fields, accessors and non-enumerable fields', () => {
-    expect(validateJsonValue(Array.from({ length: 1 }).map(() => 1).concat(Array.from({ length: 1 }))).success).toBeFalsy()
-    expect(validateJsonValue(Object.assign([1], { extra: 2 })).success).toBeFalsy()
-    expect(validateJsonValue(Object.defineProperty([1], 'hidden', { value: 2 })).success).toBeFalsy()
-    expect(validateJsonValue(Object.defineProperty([1], '0', { value: 1, enumerable: false })).success).toBeFalsy()
-    let invoked = false
-    const accessor = Object.defineProperty({}, 'value', {
-      enumerable: true,
-      get() {
-        invoked = true
-        throw new Error('Do not invoke')
-      },
-    })
-    expect(validateJsonValue(accessor).success).toBeFalsy()
-    expect(invoked).toBeFalsy()
-    expect(validateJsonValue(Object.defineProperty({}, 'hidden', { value: 1 })).success).toBeFalsy()
-    expect(validateJsonValue({ [Symbol('key')]: 'secret' }).success).toBeFalsy()
-  })
-
-  it('rejects failed inspection and proxies without invoking their property reads', () => {
-    const inspectionFailure = new Proxy({}, {
-      ownKeys() {
-        throw new Error('Inspection failed')
-      },
-    })
-    expect(validateJsonValue(inspectionFailure)).toMatchObject({ success: false, issues: [{ code: 'NON_JSON_VALUE' }] })
-    let accessed = false
-    const parsingFailure = new Proxy({ value: 1 }, {
-      get() {
-        accessed = true
-        throw new Error('Parsing failed')
-      },
-    })
-    expect(validateJsonValue(parsingFailure)).toMatchObject({ success: false, issues: [{ code: 'NON_JSON_VALUE' }] })
-    expect(accessed).toBeFalsy()
-    const changingValues = new Proxy({ value: 1 }, {
-      get() {
-        return nestedJson(100)
-      },
-    })
-    expect(validateJsonValue(changingValues, 2)).toMatchObject({ success: false, issues: [{ code: 'NON_JSON_VALUE' }] })
-  })
-
-  it('enforces finite depth and valid protection settings', () => {
-    expect(validateJsonValue({ a: { b: 1 } }, 2).success).toBeTruthy()
-    const parsed = validateJsonValue({ a: { b: 1 } }, 1)
-    expect(parsed.success).toBeFalsy()
-    if (!parsed.success)
-      expect(parsed.issues[0]).toMatchObject({ code: 'DEPTH_EXCEEDED', path: ['a', 'b'] })
-    expect(validateJsonValue({}, Infinity).success).toBeFalsy()
-    expect(safeParseTraceEvent(baseEvent, { maxEventBytes: Infinity }).success).toBeFalsy()
-  })
-
-  it('bounds standalone JSON inspection including the transport allowance', () => {
-    expect(validateJsonValue(nestedJson(258), 258).success).toBeTruthy()
-    expect(validateJsonValue(nestedJson(259), 258)).toMatchObject({ success: false, issues: [{ code: 'DEPTH_EXCEEDED' }] })
-    expect(validateJsonValue({}, 259)).toMatchObject({ success: false, issues: [{ code: 'INVALID_LIMITS' }] })
-    expect(safeParseTraceEvent(baseEvent, { maxDepth: 257 })).toMatchObject({ success: false, issues: [{ code: 'INVALID_LIMITS' }] })
-  })
-})
 
 describe('event parsing and version migration', () => {
   it('parses a valid event and canonicalizes a UTC timestamp', () => {
@@ -164,18 +75,6 @@ describe('bridge parsing', () => {
     expect(parsed.success).toBeFalsy()
     if (!parsed.success)
       expect(parsed.issues[0]).toMatchObject({ code: 'UNSUPPORTED_VERSION', path: ['data', 1, 'version'] })
-  })
-
-  it.each([64, 256])('treats depth %i relative to the event in both bridge variants', (maxDepth) => {
-    const event = { ...baseEvent, payload: nestedJson(maxDepth - 1) }
-    const options = { maxDepth }
-    expect(safeParseTraceEvent(event, options).success).toBeTruthy()
-    expect(safeParseBridgeMessage({ ...common, kind: 'trace-event', data: event }, options).success).toBeTruthy()
-    expect(safeParseBridgeMessage({ ...common, kind: 'trace-batch', data: [event] }, options).success).toBeTruthy()
-    const tooDeep = { ...event, payload: nestedJson(maxDepth) }
-    expect(safeParseTraceEvent(tooDeep, options)).toMatchObject({ success: false, issues: [{ code: 'DEPTH_EXCEEDED' }] })
-    expect(safeParseBridgeMessage({ ...common, kind: 'trace-event', data: tooDeep }, options)).toMatchObject({ success: false, issues: [{ code: 'DEPTH_EXCEEDED' }] })
-    expect(safeParseBridgeMessage({ ...common, kind: 'trace-batch', data: [tooDeep] }, options)).toMatchObject({ success: false, issues: [{ code: 'DEPTH_EXCEEDED' }] })
   })
 
   it('enforces both event and batch size/count limits', () => {

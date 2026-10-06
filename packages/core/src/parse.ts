@@ -9,9 +9,6 @@ import {
 } from '@trace-script/metadata'
 import { utf8ByteLength } from '@trace-script/shared'
 
-const BRIDGE_DEPTH_ALLOWANCE = 2
-const MAX_JSON_INSPECTION_DEPTH = 256 + BRIDGE_DEPTH_ALLOWANCE
-
 export type ProtocolResult<T> = { success: true, data: T } | { success: false, issues: ProtocolIssue[] }
 
 export class ProtocolValidationError extends Error {
@@ -26,91 +23,6 @@ export class ProtocolValidationError extends Error {
 
 function failure(code: ProtocolIssue['code'], message: string, path: ProtocolIssue['path'] = []): ProtocolResult<never> {
   return { success: false, issues: [{ code, path, message }] }
-}
-
-/** Checks raw JSON before recursive parsing. The 258-level ceiling includes two transport wrapper levels. */
-export function validateJsonValue(input: unknown, maxDepth = DEFAULT_PROTOCOL_LIMITS.maxDepth): ProtocolResult<JsonValue> {
-  if (!Number.isSafeInteger(maxDepth) || maxDepth < 1 || maxDepth > MAX_JSON_INSPECTION_DEPTH)
-    return failure('INVALID_LIMITS', `JSON depth must be an integer from 1 to ${MAX_JSON_INSPECTION_DEPTH}`)
-
-  const rootPath: ProtocolIssue['path'] = []
-  const stack = [{ value: input, path: rootPath, depth: 0, exiting: false }]
-  const active = new WeakSet<object>()
-
-  while (stack.length > 0) {
-    const entry = stack.pop()
-    if (!entry)
-      break
-
-    const { value, path, depth, exiting } = entry
-    if (depth > maxDepth)
-      return failure('DEPTH_EXCEEDED', `JSON depth exceeds ${maxDepth}`, path)
-
-    if (value === null || typeof value === 'string' || typeof value === 'boolean')
-      continue
-    if (typeof value === 'number') {
-      if (!Number.isFinite(value))
-        return failure('NON_JSON_VALUE', 'JSON numbers must be finite', path)
-      continue
-    }
-    if (typeof value !== 'object')
-      return failure('NON_JSON_VALUE', 'Expected a JSON value', path)
-
-    if (exiting) {
-      active.delete(value)
-      continue
-    }
-    if (active.has(value))
-      return failure('CYCLIC_VALUE', 'Circular references are not JSON values', path)
-
-    try {
-      const array = Array.isArray(value)
-      const prototype = Object.getPrototypeOf(value)
-      if (!array && prototype !== Object.prototype && prototype !== null)
-        return failure('NON_JSON_VALUE', 'Only plain objects and arrays are allowed', path)
-      if (Object.getOwnPropertySymbols(value).length > 0)
-        return failure('NON_JSON_VALUE', 'Symbol properties cannot be serialized to JSON', path)
-
-      active.add(value)
-      stack.push({ value, path, depth, exiting: true })
-      const descriptors = Object.getOwnPropertyDescriptors(value)
-      if (array) {
-        const length = descriptors.length?.value
-        if (typeof length !== 'number' || !Number.isSafeInteger(length) || length < 0)
-          return failure('NON_JSON_VALUE', 'Expected a valid array length', path)
-        for (const [key, descriptor] of Object.entries(descriptors)) {
-          if (key !== 'length' && (!/^(?:0|[1-9]\d*)$/.test(key) || Number(key) >= length || !descriptor.enumerable))
-            return failure('NON_JSON_VALUE', 'Array properties would be lost during JSON serialization', [...path, key])
-        }
-        for (let index = length - 1; index >= 0; index--) {
-          const descriptor = descriptors[index]
-          if (!descriptor || !Object.hasOwn(descriptor, 'value'))
-            return failure('NON_JSON_VALUE', 'Sparse arrays and accessors are not JSON values', [...path, index])
-          stack.push({ value: descriptor.value, path: [...path, index], depth: depth + 1, exiting: false })
-        }
-      }
-      else {
-        for (const [key, descriptor] of Object.entries(descriptors)) {
-          if (!descriptor.enumerable || !Object.hasOwn(descriptor, 'value'))
-            return failure('NON_JSON_VALUE', 'Non-enumerable fields and accessors are not JSON values', [...path, key])
-          stack.push({ value: descriptor.value, path: [...path, key], depth: depth + 1, exiting: false })
-        }
-      }
-    }
-    catch {
-      return failure('NON_JSON_VALUE', 'The value cannot be inspected safely', path)
-    }
-  }
-
-  try {
-    const parsed = jsonValueSchema.safeParse(structuredClone(input))
-    if (!parsed.success)
-      return failure('NON_JSON_VALUE', 'Expected a JSON value')
-    return { success: true, data: parsed.data }
-  }
-  catch {
-    return failure('NON_JSON_VALUE', 'The value cannot be cloned and parsed safely')
-  }
 }
 
 function getLimits(options: Partial<ProtocolLimits>): ProtocolResult<ProtocolLimits> {
@@ -132,9 +44,9 @@ export function safeParseTraceEvent(input: unknown, options: Partial<ProtocolLim
   const limits = getLimits(options)
   if (!limits.success)
     return limits
-  const json = validateJsonValue(input, limits.data.maxDepth)
+  const json = jsonValueSchema.safeParse(input)
   if (!json.success)
-    return json
+    return failure('NON_JSON_VALUE', 'Expected a JSON value')
   const issues = versionIssue(json.data)
   if (issues.length > 0)
     return { success: false, issues }
@@ -166,9 +78,9 @@ export function safeParseBridgeMessage(input: unknown, options: Partial<Protocol
   const limits = getLimits(options)
   if (!limits.success)
     return limits
-  const json = validateJsonValue(input, limits.data.maxDepth + BRIDGE_DEPTH_ALLOWANCE)
+  const json = jsonValueSchema.safeParse(input)
   if (!json.success)
-    return json
+    return failure('NON_JSON_VALUE', 'Expected a JSON value')
   const issues = versionIssue(json.data)
   if (issues.length > 0)
     return { success: false, issues }

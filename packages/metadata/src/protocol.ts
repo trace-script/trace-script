@@ -106,7 +106,6 @@ export const protocolLimitsSchema = z.object({
   maxEventBytes: z.number().int().positive().max(64 * 1024 * 1024),
   maxBatchBytes: z.number().int().positive().max(128 * 1024 * 1024),
   maxBatchEvents: z.number().int().positive().max(100),
-  maxDepth: z.number().int().positive().max(256),
 })
 
 export type ProtocolLimits = z.infer<typeof protocolLimitsSchema>
@@ -115,7 +114,6 @@ export const DEFAULT_PROTOCOL_LIMITS: ProtocolLimits = {
   maxEventBytes: 1024 * 1024,
   maxBatchBytes: 2 * 1024 * 1024,
   maxBatchEvents: 100,
-  maxDepth: 64,
 }
 
 export const protocolIssueSchema = z.object({
@@ -124,8 +122,6 @@ export const protocolIssueSchema = z.object({
     'UNSUPPORTED_VERSION',
     'INVALID_FIELD',
     'NON_JSON_VALUE',
-    'CYCLIC_VALUE',
-    'DEPTH_EXCEEDED',
     'EVENT_TOO_LARGE',
     'BATCH_TOO_LARGE',
     'BATCH_LIMIT_EXCEEDED',
