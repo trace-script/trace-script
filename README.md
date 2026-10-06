@@ -1,22 +1,33 @@
 # Trace Script
 
-Trace Script is a local Chrome DevTools panel for inspecting Agent event streams. The implementation follows the staged plans in [docs](docs/README.md); current delivery and acceptance records are in [the execution tracker](docs/08-execution-tracker.md).
+Trace Script is a Chrome DevTools extension for inspecting Agent event streams. It currently includes protocol parsing, a Trace SDK, and a foundational DevTools panel.
 
-Install dependencies with `pnpm install --frozen-lockfile` using the Node.js version supported by tsdown and the pnpm version declared in `package.json`.
+## Installation
+
+Requires Node.js, pnpm `11.24.0`, and Chrome 120+.
+
+```sh
+pnpm install
+```
+
+## Common commands
 
 | Command | Purpose |
 | --- | --- |
-| `pnpm dev` | Open the playground development server at `http://127.0.0.1:4317` |
-| `pnpm dev:panel` | Preview the internal Nuxt panel |
-| `pnpm build` | Build the library packages, extension, and static playground |
-| `pnpm build:dev` | Assemble a separate development extension directory |
-| `pnpm test` | Prepare Nuxt types and run root-level Vitest tests |
-| `pnpm typecheck` | Check root tests, independent packages, and the Nuxt panel |
-| `pnpm lint` | Check repository formatting and lint rules |
-| `pnpm package:chrome` | Build and archive the production extension |
+| `pnpm dev` | Start the playground (`http://127.0.0.1:4317`) |
+| `pnpm dev:panel` | Start the panel development server |
+| `pnpm build` | Build all workspaces and the extension |
+| `pnpm build:dev` | Build the development extension |
+| `pnpm test` | Run Vitest tests |
+| `pnpm typecheck` | Run TypeScript checks |
+| `pnpm lint` | Run lint checks |
+| `pnpm package:chrome` | Package the production extension |
 
-Every package enters packaging through tsdown. The internal Nuxt SPA uses its explicitly approved Vite pipeline. The panel belongs to `packages/chrome-extensions`; the root playground is a private development workspace and is excluded from extension packaging.
+## Load the extension locally
 
-Load `packages/chrome-extensions/dist` as an unpacked extension, then open the playground's DevTools and select **Agent Trace**. The foundation stage supplies the panel shell; recording and SDK scenarios arrive with the protocol and ingestion stages.
+1. Run `pnpm build`.
+2. Open `chrome://extensions`, enable **Developer mode**, and choose **Load unpacked**.
+3. Select `packages/chrome-extensions/dist`.
+4. Open the playground's DevTools and select the **Agent Trace** panel.
 
-Tests live in root `tests/<package>/` directories for `core`, `metadata`, `sdk`, `shared`, and `chrome-extensions`. They are added alongside the actual functions and schema behavior; empty entry points do not receive placeholder behavior tests. `tsconfig` supplies shared configuration and has no business unit tests.
+The development extension is generated in `packages/chrome-extensions/dist-dev`.
