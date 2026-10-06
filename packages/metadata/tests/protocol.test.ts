@@ -1,4 +1,4 @@
-import type { JsonValue, TraceEventEnvelope, TraceStatus } from '@/'
+import type { JsonValue, TraceEventEnvelope, TraceStatus } from '@/index'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 import {
   DEFAULT_PROTOCOL_LIMITS,

@@ -28,7 +28,6 @@
     "@trace-script/shared": "workspace:*"
   },
   "devDependencies": {
-    "@trace-script/metadata": "workspace:*",
     "@trace-script/tsconfig": "workspace:*",
     "tsdown": "catalog:build",
     "typescript": "catalog:dev"
