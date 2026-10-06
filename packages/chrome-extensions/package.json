@@ -23,14 +23,14 @@
     "trace-script"
   ],
   "scripts": {
-    "build": "tsdown",
-    "build:dev": "TRACE_SCRIPT_BUILD_MODE=development tsdown",
-    "dev": "TRACE_SCRIPT_BUILD_MODE=development tsdown --watch",
-    "dev:panel": "nuxt dev panel",
+    "build": "tsdown --config-loader tsx",
+    "build:dev": "TRACE_SCRIPT_BUILD_MODE=development tsdown --config-loader tsx",
+    "dev": "TRACE_SCRIPT_BUILD_MODE=development tsdown --watch --config-loader tsx",
+    "dev:panel": "nuxt dev apps/panel",
     "typecheck": "tsc --noEmit",
-    "typecheck:panel": "nuxt typecheck panel",
+    "typecheck:panel": "nuxt prepare apps/panel && vue-tsc --noEmit -p apps/panel/.nuxt/tsconfig.json",
     "package:chrome": "pnpm build && tsx scripts/package.ts",
-    "prepare:panel": "nuxt prepare panel"
+    "prepare:panel": "nuxt prepare apps/panel"
   },
   "dependencies": {
     "class-variance-authority": "catalog:ui",

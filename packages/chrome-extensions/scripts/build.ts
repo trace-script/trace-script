@@ -16,7 +16,7 @@ export async function assembleExtension(mode: ExtensionBuildMode) {
     throw new Error('The extension package must declare a version.')
   }
 
-  execFileSync('nuxt', ['generate', 'panel'], {
+  execFileSync('nuxt', ['generate', 'apps/panel'], {
     cwd: packageDirectory,
     stdio: 'inherit',
     env: { ...process.env, NUXT_APP_BASE_URL: './' },
@@ -25,8 +25,8 @@ export async function assembleExtension(mode: ExtensionBuildMode) {
   await rm(outputDirectory, { recursive: true, force: true })
   await mkdir(outputDirectory, { recursive: true })
   await cp(new URL('../.build/extension/', import.meta.url), outputDirectory, { recursive: true })
-  await cp(new URL('../panel/.output/public/', import.meta.url), new URL('panel/', outputDirectory), { recursive: true })
-  await cp(new URL('../extension/devtools/devtools.html', import.meta.url), new URL('devtools.html', outputDirectory))
+  await cp(new URL('../apps/panel/.output/public/', import.meta.url), new URL('panel/', outputDirectory), { recursive: true })
+  await cp(new URL('../apps/extension/devtools/devtools.html', import.meta.url), new URL('devtools.html', outputDirectory))
 
   for (const filename of ['index.html', '200.html', '404.html']) {
     const htmlFile = new URL(`panel/${filename}`, outputDirectory)

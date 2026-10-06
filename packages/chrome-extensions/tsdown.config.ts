@@ -6,9 +6,9 @@ export default defineConfig((options) => {
 
   return {
     entry: {
-      background: 'extension/background/index.ts',
-      content: 'extension/content/index.ts',
-      devtools: 'extension/devtools/index.ts',
+      background: 'apps/extension/background/index.ts',
+      content: 'apps/extension/content/index.ts',
+      devtools: 'apps/extension/devtools/index.ts',
     },
     outDir: '.build/extension',
     platform: 'browser',
@@ -17,7 +17,7 @@ export default defineConfig((options) => {
     outExtensions: () => ({ js: '.js' }),
     dts: false,
     clean: true,
-    watch: options.watch ? ['extension', 'panel/app', 'panel/nuxt.config.ts'] : false,
+    watch: options.watch ? ['apps/extension', 'apps/panel/app', 'apps/panel/nuxt.config.ts'] : false,
     hooks: {
       'build:done': () => assembleExtension(mode),
     },

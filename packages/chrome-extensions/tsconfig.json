@@ -5,8 +5,8 @@
   ],
   "compilerOptions": {
     "paths": {
-      "@/panel/*": ["./panel/*"],
-      "@/extension/*": ["./extension/*"],
+      "@/panel/*": ["./apps/panel/*"],
+      "@/extension/*": ["./apps/extension/*"],
       "@/scripts/*": ["./scripts/*"]
     },
     "types": [
@@ -14,5 +14,6 @@
       "node"
     ]
   },
-  "include": ["apps", "scripts", "tsdown.config.ts"]
+  "include": ["apps/extension", "scripts", "tsdown.config.ts"],
+  "exclude": ["app/panel"]
 }
