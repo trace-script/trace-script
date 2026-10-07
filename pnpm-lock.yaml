@@ -264,6 +264,9 @@ importers:
 
   packages/playground:
     dependencies:
+      '@trace-script/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       vue:
         specifier: catalog:ui
         version: 3.5.43(typescript@6.0.3)
