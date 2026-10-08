@@ -18,7 +18,7 @@ Page SDK
 ## 2. 前置条件
 
 - Manifest V3 骨架可以加载；
-- Trace 协议 `1.0` 已冻结；
+- 最小 Trace 事件及页面消息格式已确定；
 - `core` 提供运行时校验；
 - `chrome-extensions` 已建立扩展内部消息类型目录。
 

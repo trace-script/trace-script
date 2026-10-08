@@ -39,13 +39,12 @@
     "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@trace-script/metadata": "workspace:*",
-    "@trace-script/shared": "workspace:*"
-  },
   "devDependencies": {
+    "@trace-script/core": "workspace:*",
+    "@trace-script/metadata": "workspace:*",
     "@trace-script/tsconfig": "workspace:*",
     "tsdown": "catalog:build",
-    "typescript": "catalog:dev"
+    "typescript": "catalog:dev",
+    "zod": "catalog:validation"
   }
 }

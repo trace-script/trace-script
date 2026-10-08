@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@trace-script/metadata": "workspace:*",
-    "@trace-script/shared": "workspace:*"
+    "zod": "catalog:validation"
   },
   "devDependencies": {
     "@trace-script/tsconfig": "workspace:*",
