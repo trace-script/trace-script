@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createManifest } from '@/extension/manifest/create-manifest'
+import { createManifest } from '@/scripts/create-manifest'
 
 describe('createManifest', () => {
   it('creates a local Manifest V3 extension without site permissions', () => {
