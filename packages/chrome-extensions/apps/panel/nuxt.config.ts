@@ -5,6 +5,7 @@ import { version } from '../../package.json'
 export default defineNuxtConfig({
   compatibilityDate: '2026-10-04',
   ssr: false,
+  typescript: { tsConfig: { compilerOptions: { types: ['chrome'] } } },
   pages: false,
   devtools: { enabled: false },
   buildId: `trace-script-${version}`,

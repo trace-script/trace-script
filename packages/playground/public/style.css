@@ -1,0 +1,55 @@
+body {
+  margin: 0;
+  background: #11171b;
+  color: #dce5eb;
+  font: 15px system-ui;
+}
+.playground {
+  max-width: 850px;
+  margin: 70px auto;
+  padding: 30px;
+}
+.label {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: #57d9b0;
+}
+h1 {
+  font-size: 60px;
+  letter-spacing: -0.06em;
+  font-weight: 550;
+  line-height: 1.05;
+}
+p {
+  color: #91a0ab;
+  line-height: 1.7;
+}
+section {
+  border-top: 1px solid #303a42;
+  padding: 25px 0;
+}
+h2 {
+  font-size: 20px;
+  font-weight: 500;
+}
+button {
+  border: 1px solid #36534b;
+  color: #57d9b0;
+  background: #1b2b27;
+  padding: 12px 18px;
+  border-radius: 6px;
+  margin: 0 8px 8px 0;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.4;
+}
+.result {
+  padding: 20px;
+  background: #192027;
+  border-radius: 6px;
+}
+footer {
+  font-size: 12px;
+  color: #91a0ab;
+}

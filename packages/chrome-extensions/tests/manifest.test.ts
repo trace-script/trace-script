@@ -6,20 +6,31 @@ describe('createManifest', () => {
     const manifest = createManifest('0.1.0', 'production')
 
     expect(manifest.manifest_version).toBe(3)
+
     expect(manifest.devtools_page).toBe('devtools.html')
+
     expect(manifest.background).toEqual({ service_worker: 'background.js', type: 'module' })
+
     expect(manifest.content_security_policy.extension_pages).toBe('script-src \'self\'; object-src \'self\'')
-    expect(manifest).not.toHaveProperty('permissions')
+
+    expect(manifest.permissions).toEqual(['storage', 'scripting', 'alarms', 'tabs'])
+
+    expect(manifest.optional_host_permissions).toEqual(['http://*/*', 'https://*/*'])
+
     expect(manifest).not.toHaveProperty('host_permissions')
+
     expect(manifest).not.toHaveProperty('content_scripts')
   })
 
   it('labels development builds without weakening the production CSP', () => {
     const development = createManifest('1.2.3', 'development')
+
     const production = createManifest('1.2.3', 'production')
 
     expect(development.name).toBe('Trace Script (Development)')
+
     expect(production.name).toBe('Trace Script')
+
     expect(development.content_security_policy).toEqual(production.content_security_policy)
   })
 

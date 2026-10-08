@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import PanelShell from './components/foundation/PanelShell.vue'
+import TraceWorkbench from './components/trace/TraceWorkbench.vue'
 </script>
 
 <template>
-  <PanelShell />
+  <TraceWorkbench />
 </template>

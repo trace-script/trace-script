@@ -6,6 +6,9 @@ export interface ExtensionManifest {
   description: string
   version: string
   minimum_chrome_version: string
+  permissions: string[]
+  optional_host_permissions: string[]
+  icons: Record<string, string>
   devtools_page: string
   background: {
     service_worker: string
@@ -29,6 +32,9 @@ export function createManifest(version: string, mode: ExtensionBuildMode): Exten
     description: 'Inspect Agent event streams in Chrome DevTools.',
     version,
     minimum_chrome_version: '120',
+    permissions: ['storage', 'scripting', 'alarms', 'tabs'],
+    optional_host_permissions: ['http://*/*', 'https://*/*'],
+    icons: { 16: 'icons/16.png', 48: 'icons/48.png', 128: 'icons/128.png' },
     devtools_page: 'devtools.html',
     background: {
       service_worker: 'background.js',

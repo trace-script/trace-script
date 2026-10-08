@@ -33,8 +33,14 @@
     "prepare:panel": "nuxt prepare apps/panel"
   },
   "dependencies": {
+    "@fontsource/geist-mono": "catalog:ui",
+    "@fontsource/geist-sans": "catalog:ui",
+    "@trace-script/core": "workspace:*",
+    "@trace-script/metadata": "workspace:*",
+    "@trace-script/shared": "workspace:*",
     "class-variance-authority": "catalog:ui",
-    "vue": "catalog:ui"
+    "vue": "catalog:ui",
+    "zod": "catalog:validation"
   },
   "devDependencies": {
     "@tailwindcss/vite": "catalog:build",

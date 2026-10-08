@@ -1,3 +1,7 @@
 export * from './aggregate'
+export * from './json'
 export * from './normalize'
 export * from './parse'
+export * from './query'
+export * from './redact'
+export * from './repository'
