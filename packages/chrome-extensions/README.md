@@ -12,4 +12,4 @@ The build sets the panel asset base to `./`, disables inline import maps, and ex
 
 Acceptance criteria: repeatable development and production assembly, a local DevTools registration, a Nuxt panel displaying the build version, and no executable inline scripts under the extension CSP. Root Vitest tests cover manifest constraints, bootstrap extraction, and badge variants. Browser verification and actual Chrome installation checks are recorded separately so automated checks do not imply manual acceptance.
 
-The build and manifest tests share `apps/extension/manifest/create-manifest.ts`. DevTools registration runs directly from its entry, without a forwarding helper or unused callback, and skips registration when DevTools APIs are unavailable.
+The build and manifest tests share `scripts/create-manifest.ts`, which generates the manifest at build time. DevTools registration runs directly from its entry, without a forwarding helper or unused callback, and skips registration when DevTools APIs are unavailable.

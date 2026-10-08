@@ -1,8 +1,8 @@
-import type { ExtensionBuildMode } from '../apps/extension/manifest/create-manifest'
+import type { ExtensionBuildMode } from './create-manifest'
 import { execFileSync } from 'node:child_process'
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import { createManifest } from '../apps/extension/manifest/create-manifest'
+import { createManifest } from './create-manifest'
 import { preparePanelHtml } from './prepare-panel-html'
 
 export async function assembleExtension(mode: ExtensionBuildMode) {
