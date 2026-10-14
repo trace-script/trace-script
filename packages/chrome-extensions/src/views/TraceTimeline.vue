@@ -13,26 +13,106 @@ const props = defineProps<{ events: TraceEventEnvelope[], selectedId: string }>(
 const emit = defineEmits<{ select: [id: string] }>()
 const rulerCanvas = shallowRef<HTMLElement>()
 const eventsScroll = shallowRef<HTMLElement>()
-const orderedEvents = computed(() => [...props.events].sort((a, b) => eventTimestamp(a) - eventTimestamp(b) || a.sequence - b.sequence))
-const firstTimestamp = computed(() => orderedEvents.value.length ? Math.min(...orderedEvents.value.map(eventTimestamp)) : 0)
-const rows = computed<TimelineRow[]>(() => orderedEvents.value.map(event => ({ event, start: Math.max(0, eventTimestamp(event) - firstTimestamp.value), duration: eventDuration(event) })))
+
+const orderedEvents = computed(() => {
+  const events = [...props.events]
+  return events.sort((firstEvent, secondEvent) => {
+    const timestampDifference = eventTimestamp(firstEvent) - eventTimestamp(secondEvent)
+    const sequenceDifference = firstEvent.sequence - secondEvent.sequence
+    return timestampDifference || sequenceDifference
+  })
+})
+
+const firstTimestamp = computed(() => {
+  if (orderedEvents.value.length === 0)
+    return 0
+
+  const timestamps = orderedEvents.value.map(eventTimestamp)
+  return Math.min(...timestamps)
+})
+
+const rows = computed<TimelineRow[]>(() => {
+  return orderedEvents.value.map((event) => {
+    const elapsedTime = eventTimestamp(event) - firstTimestamp.value
+    const start = Math.max(0, elapsedTime)
+    const duration = eventDuration(event)
+    return { event, start, duration }
+  })
+})
+
 const groups = computed(() => {
   const grouped = new Map<string, TimelineRow[]>()
-  for (const row of rows.value) grouped.set(row.event.type, [...(grouped.get(row.event.type) ?? []), row])
+  for (const row of rows.value) {
+    const type = row.event.type
+    const groupRows = grouped.get(type) ?? []
+    groupRows.push(row)
+    grouped.set(type, groupRows)
+  }
   return [...grouped].map(([type, groupRows]) => ({ type, rows: groupRows }))
 })
-const endTime = computed(() => Math.max(1, ...rows.value.map(row => row.start + row.duration)))
-const ticks = computed(() => Array.from({ length: 5 }, (_, index) => ({ value: (endTime.value / 4) * index, position: index * 25 })))
-const overlapCount = computed(() => Object.fromEntries(rows.value.map(row => [row.event.eventId, rows.value.filter(other => other.event.eventId !== row.event.eventId && other.start < row.start + row.duration && row.start < other.start + other.duration).length])))
+
+const endTime = computed(() => {
+  const eventEndTimes = rows.value.map(row => row.start + row.duration)
+  return Math.max(1, ...eventEndTimes)
+})
+
+const ticks = computed(() => {
+  const tickInterval = endTime.value / 4
+  return Array.from({ length: 5 }, (_, index) => {
+    const value = tickInterval * index
+    const position = index * 25
+    return { value, position }
+  })
+})
+
+const overlapCount = computed(() => {
+  const eventOverlapCounts = rows.value.map((row) => {
+    const rowEnd = row.start + row.duration
+    const overlappingRows = rows.value.filter((other) => {
+      if (other.event.eventId === row.event.eventId)
+        return false
+
+      const otherEnd = other.start + other.duration
+      const otherStartsBeforeRowEnds = other.start < rowEnd
+      const rowStartsBeforeOtherEnds = row.start < otherEnd
+      return otherStartsBeforeRowEnds && rowStartsBeforeOtherEnds
+    })
+    return [row.event.eventId, overlappingRows.length]
+  })
+  return Object.fromEntries(eventOverlapCounts)
+})
+
 function formatTime(value: number): string {
   return formatDuration(value).replace('ms', ' ms')
 }
+
 function barStyle(row: TimelineRow): Record<string, string> {
+  const startPercentage = (row.start / endTime.value) * 100
+  const durationPercentage = (row.duration / endTime.value) * 100
+  const visibleWidth = Math.max(durationPercentage, 0.35)
   return {
-    left: `${(row.start / endTime.value) * 100}%`,
-    width: `${Math.max((row.duration / endTime.value) * 100, 0.35)}%`,
+    left: `${startPercentage}%`,
+    width: `${visibleWidth}%`,
   }
 }
+function barClasses(row: TimelineRow): Record<string, boolean> {
+  const status = eventStatus(row.event)
+  const isSelected = row.event.eventId === props.selectedId
+  const hasOverlap = Boolean(overlapCount.value[row.event.eventId])
+  return {
+    [`timeline-bar-${status}`]: true,
+    'timeline-bar-selected': isSelected,
+    'timeline-bar-parallel': hasOverlap,
+  }
+}
+function barTitle(row: TimelineRow): string {
+  const name = eventName(row.event)
+  const agent = eventAgent(row.event)
+  const duration = formatTime(row.duration)
+  const executionMode = overlapCount.value[row.event.eventId] ? 'parallel' : 'serial'
+  return `${name} · ${agent} · ${duration} · ${executionMode}`
+}
+
 function syncTimelineScroll(event: Event): void {
   if (!rulerCanvas.value)
     return
@@ -65,7 +145,20 @@ function syncTimelineScroll(event: Event): void {
         <div ref="eventsScroll" class="timeline-events-scroll" @scroll="syncTimelineScroll">
           <div class="timeline-events-canvas">
             <div v-for="group in groups" :key="group.type" class="timeline-track-row">
-              <span class="timeline-track"><button v-for="row in group.rows" :key="row.event.eventId" type="button" class="timeline-bar" :class="[`timeline-bar-${eventStatus(row.event)}`, row.event.eventId === selectedId ? 'timeline-bar-selected' : '', overlapCount[row.event.eventId] ? 'timeline-bar-parallel' : '']" :style="barStyle(row)" :title="`${eventName(row.event)} · ${eventAgent(row.event)} · ${formatTime(row.duration)} · ${overlapCount[row.event.eventId] ? 'parallel' : 'serial'}`" @click="emit('select', row.event.eventId)"><b v-if="row.duration > endTime * 0.08">{{ formatTime(row.duration) }}</b></button></span>
+              <span class="timeline-track">
+                <button
+                  v-for="row in group.rows"
+                  :key="row.event.eventId"
+                  type="button"
+                  class="timeline-bar"
+                  :class="barClasses(row)"
+                  :style="barStyle(row)"
+                  :title="barTitle(row)"
+                  @click="emit('select', row.event.eventId)"
+                >
+                  <b v-if="row.duration > endTime * 0.08">{{ formatTime(row.duration) }}</b>
+                </button>
+              </span>
             </div>
           </div>
         </div>

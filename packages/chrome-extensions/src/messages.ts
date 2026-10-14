@@ -35,7 +35,11 @@ export type WorkerToPanelMessage = {
 }
 
 export function isContentToWorkerMessage(message: object): message is ContentToWorkerMessage {
-  if (!isObject(message) || !('type' in message) || !isString(message.type) || message.type !== EXTENSION_MESSAGE_TYPE.INGEST_EVENT || !('event' in message))
+  if (!isObject(message) || !('type' in message))
+    return false
+  if (!isString(message.type) || message.type !== EXTENSION_MESSAGE_TYPE.INGEST_EVENT)
+    return false
+  if (!('event' in message))
     return false
   return isObject(message.event)
 }

@@ -23,11 +23,13 @@ function findSrcRoot(filename: string): string {
  */
 function getImportCandidates(target: string): Array<string> {
   const extension = ['.ts', '.tsx', '.js', '.jsx', '.vue', '.json']
-  const candidates = extname(target)
-    ? [target]
-    : [target, ...extension.map(extension => `${target}${extension}`), ...['index.ts', 'index.tsx', 'index.js', 'index.jsx', 'index.vue'].map(index => join(target, index))]
+  if (extname(target))
+    return [target]
 
-  return candidates
+  const fileCandidates = extension.map(extension => `${target}${extension}`)
+  const indexFiles = ['index.ts', 'index.tsx', 'index.js', 'index.jsx', 'index.vue']
+  const directoryCandidates = indexFiles.map(index => join(target, index))
+  return [target, ...fileCandidates, ...directoryCandidates]
 }
 
 function importExists(target: string): boolean {

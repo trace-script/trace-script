@@ -41,7 +41,9 @@ export function safeParseTraceEvent(input: object): ProtocolResult<TraceEventEnv
     if (!parsed.success)
       return schemaFailure(parsed.error, 'INVALID_EVENT')
     const serialized = JSON.stringify(parsed.data)
-    return { success: true, data: traceEventEnvelopeSchema.parse(JSON.parse(serialized)) }
+    const deserialized = JSON.parse(serialized)
+    const event = traceEventEnvelopeSchema.parse(deserialized)
+    return { success: true, data: event }
   }
   catch {
     return failure('INVALID_EVENT', 'Event could not be serialized')
@@ -61,8 +63,10 @@ export function safeParseBridgeMessage(input: object): ProtocolResult<TraceBridg
     if (!parsed.success)
       return schemaFailure(parsed.error, 'INVALID_BRIDGE')
     const event = safeParseTraceEvent(parsed.data.data)
-    if (!event.success)
-      return { success: false, issues: event.issues.map(issue => ({ ...issue, path: ['data', ...issue.path] })) }
+    if (!event.success) {
+      const issues = event.issues.map(issue => ({ ...issue, path: ['data', ...issue.path] }))
+      return { success: false, issues }
+    }
     const message = { channel: parsed.data.channel, kind: parsed.data.kind, data: event.data }
     return { success: true, data: message }
   }

@@ -14,9 +14,17 @@ watch(() => props.event?.eventId, () => {
   tab.value = 'Overview'
 })
 const payload = computed(() => props.event ? eventPayload(props.event) : {})
-const related = computed(() => props.event
-  ? props.siblings.filter(item => item.traceId === props.event!.traceId && item.eventId !== props.event!.eventId)
-  : [])
+const related = computed(() => {
+  const selectedEvent = props.event
+  if (!selectedEvent)
+    return []
+
+  return props.siblings.filter((item) => {
+    const sharesTrace = item.traceId === selectedEvent.traceId
+    const isOtherEvent = item.eventId !== selectedEvent.eventId
+    return sharesTrace && isOtherEvent
+  })
+})
 </script>
 
 <template>

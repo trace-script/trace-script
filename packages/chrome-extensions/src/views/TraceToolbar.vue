@@ -2,11 +2,12 @@
 import type { TraceEventEnvelope } from '@trace-script/metadata'
 import { Icon } from '@iconify/vue'
 import { TRACE_EVENT_TYPE } from '@trace-script/metadata'
+import { computed } from 'vue'
 import FilterSelect from '@/components/FilterSelect.vue'
 import ToolbarButton from '@/components/ToolbarButton.vue'
 import { TRACE_FILTER_VALUE, TRACE_STATUS } from '@/utils/ui-model'
 
-defineProps<{
+const props = defineProps<{
   total: number
   visible: number
   preview: boolean
@@ -27,6 +28,7 @@ const query = defineModel<string>('query', { required: true })
 const type = defineModel<typeof TRACE_FILTER_VALUE.ALL | TraceEventEnvelope['type']>('type', { required: true })
 const status = defineModel<typeof TRACE_FILTER_VALUE.ALL | typeof TRACE_STATUS[keyof typeof TRACE_STATUS]>('status', { required: true })
 const agent = defineModel<string>('agent', { required: true })
+const recordingActionLabel = computed(() => props.recording ? 'Pause live updates' : 'Resume live updates')
 
 const typeOptions = [
   TRACE_FILTER_VALUE.ALL,
@@ -51,7 +53,14 @@ const statusOptions = [
   <header class="trace-toolbar">
     <div class="toolbar-main">
       <aside>
-        <button type="button" class="icon-button" :class="recording ? 'is-live' : 'is-paused'" :aria-label="recording ? 'Pause live updates' : 'Resume live updates'" :title="recording ? 'Pause live updates' : 'Resume live updates'" @click="emit('toggleRecording')">
+        <button
+          type="button"
+          class="icon-button"
+          :class="recording ? 'is-live' : 'is-paused'"
+          :aria-label="recordingActionLabel"
+          :title="recordingActionLabel"
+          @click="emit('toggleRecording')"
+        >
           <Icon :icon="recording ? 'mdi:record-circle-outline' : 'mdi:play-outline'" aria-hidden="true" />
         </button>
         <button type="button" class="icon-button" aria-label="Clear events" title="Clear events" @click="emit('clear')">
