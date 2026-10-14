@@ -244,9 +244,6 @@ importers:
       '@types/node':
         specifier: catalog:types
         version: 26.6.3
-      tsdown:
-        specifier: catalog:build
-        version: 0.23.0(@volar/typescript@2.4.28(typescript@6.0.3))(@vue/language-core@3.3.12)(tsx@4.23.15)(typescript@6.0.3)(vue-tsc@3.3.12(typescript@6.0.3))
       typescript:
         specifier: catalog:dev
         version: 6.0.3
