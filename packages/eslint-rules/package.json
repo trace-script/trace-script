@@ -2,7 +2,7 @@
   "name": "@trace-script/eslint-rules",
   "type": "module",
   "private": true,
-  "description": "Repository-specific ESLint rules for Trace Script.",
+  "description": "Repository-specific ESLint rules for @trace-script.",
   "author": "NoiseFan <https://github.com/NoiseFan>",
   "license": "MIT",
   "sideEffects": false,
@@ -20,7 +20,6 @@
   },
   "devDependencies": {
     "@trace-script/tsconfig": "workspace:*",
-    "@types/node": "catalog:types",
-    "typescript": "catalog:dev"
+    "@types/node": "catalog:types"
   }
 }

@@ -1,6 +1,7 @@
+import type { Rule } from './index'
 import { createSimplePlugin } from 'eslint-factory'
 
-const noRef: ReturnType<typeof createSimplePlugin> = createSimplePlugin({
+export const noRef: Rule = createSimplePlugin({
   name: 'no-ref',
   create(context) {
     return {
@@ -23,5 +24,3 @@ const noRef: ReturnType<typeof createSimplePlugin> = createSimplePlugin({
     }
   },
 })
-
-export default noRef

@@ -1,3 +1,4 @@
+import type { Rule } from './index'
 import { existsSync } from 'node:fs'
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { createSimplePlugin } from 'eslint-factory'
@@ -64,7 +65,7 @@ function resolveAlias(source: string, filename: string): string {
   return `@/${srcImport}`
 }
 
-const noRelativeSrcImport: ReturnType<typeof createSimplePlugin> = createSimplePlugin({
+export const noRelativeSrcImport: Rule = createSimplePlugin({
   name: 'no-relative-src-import',
   description: 'Use @/ aliases instead of relative imports within src.',
   include: ['*.ts', '**/*.ts', '*.vue', '**/*.vue'],
@@ -92,5 +93,3 @@ const noRelativeSrcImport: ReturnType<typeof createSimplePlugin> = createSimpleP
     }
   },
 })
-
-export default noRelativeSrcImport

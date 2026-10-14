@@ -1,11 +1,12 @@
+import type { Rule } from './index'
 import { createSimplePlugin } from 'eslint-factory'
 
 /**
  * Require a line break before the first property in long object expressions.
- * Objects with three or fewer properties, or 140 characters or fewer, are left
- * untouched.
+ * Objects with three or fewer properties,
+ * or 140 characters or fewer are left untouched.
  */
-const objectExpressionNewline: ReturnType<typeof createSimplePlugin> = createSimplePlugin({
+export const objectExpressionNewline: Rule = createSimplePlugin({
   name: 'object-expression-newline',
   create(context) {
     const { sourceCode } = context
@@ -34,5 +35,3 @@ const objectExpressionNewline: ReturnType<typeof createSimplePlugin> = createSim
     }
   },
 })
-
-export default objectExpressionNewline

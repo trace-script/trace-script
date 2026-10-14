@@ -1,5 +1,5 @@
 import antfu from '@antfu/eslint-config'
-import eslintRules from '@trace-script/eslint-rules'
+import rules from '@trace-script/eslint-rules'
 
 export default antfu({
   type: 'lib',
@@ -21,9 +21,8 @@ export default antfu({
     },
   },
   rules: {
-    'no-console': 'off',
     'node/prefer-global/process': 'off',
     'antfu/top-level-function': 'off',
     'regexp/no-unused-capturing-group': 'off',
   },
-}, ...eslintRules)
+}, ...rules)

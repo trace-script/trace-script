@@ -1,6 +1,7 @@
+import type { Rule } from './index'
 import { createSimplePlugin } from 'eslint-factory'
 
-const htmlTagNewline: ReturnType<typeof createSimplePlugin> = createSimplePlugin({
+export const htmlTagNewline: Rule = createSimplePlugin({
   name: 'html-tag-newline',
   description: 'Require a line break between adjacent HTML tags.',
   create(context) {
@@ -30,5 +31,3 @@ const htmlTagNewline: ReturnType<typeof createSimplePlugin> = createSimplePlugin
     }
   },
 })
-
-export default htmlTagNewline
