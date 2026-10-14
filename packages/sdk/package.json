@@ -36,7 +36,6 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "build:deps": "tsdown",
     "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit"
   },
@@ -48,6 +47,7 @@
   "devDependencies": {
     "@trace-script/core": "workspace:*",
     "@trace-script/metadata": "workspace:*",
+    "@trace-script/shared": "workspace:*",
     "@trace-script/tsconfig": "workspace:*",
     "tsdown": "catalog:build",
     "typescript": "catalog:dev",

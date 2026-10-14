@@ -296,6 +296,9 @@ importers:
       '@trace-script/metadata':
         specifier: workspace:*
         version: link:../metadata
+      '@trace-script/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@trace-script/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
