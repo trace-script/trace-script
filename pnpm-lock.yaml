@@ -112,6 +112,9 @@ importers:
       '@antfu/eslint-config':
         specifier: catalog:lint
         version: 9.5.1(@typescript-eslint/typescript-estree@8.71.0(supports-color@10.2.2)(typescript@6.0.3))(@typescript-eslint/utils@8.71.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(@vue/compiler-sfc@3.5.43)(eslint-plugin-format@2.0.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2)))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)(vitest@5.0.2)
+      '@trace-script/eslint-rules':
+        specifier: workspace:*
+        version: link:packages/eslint-rules
       '@trace-script/tsconfig':
         specifier: workspace:*
         version: link:packages/tsconfig
@@ -133,9 +136,6 @@ importers:
       eslint:
         specifier: catalog:lint
         version: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
-      eslint-factory:
-        specifier: catalog:lint
-        version: 0.1.2(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
       eslint-plugin-format:
         specifier: catalog:lint
         version: 2.0.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))
@@ -225,6 +225,25 @@ importers:
       '@trace-script/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
+      tsdown:
+        specifier: catalog:build
+        version: 0.23.0(@volar/typescript@2.4.28(typescript@6.0.3))(@vue/language-core@3.3.12)(tsx@4.23.15)(typescript@6.0.3)(vue-tsc@3.3.12(typescript@6.0.3))
+      typescript:
+        specifier: catalog:dev
+        version: 6.0.3
+
+  packages/eslint-rules:
+    dependencies:
+      eslint-factory:
+        specifier: catalog:lint
+        version: 0.1.2(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+    devDependencies:
+      '@trace-script/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/node':
+        specifier: catalog:types
+        version: 26.6.3
       tsdown:
         specifier: catalog:build
         version: 0.23.0(@volar/typescript@2.4.28(typescript@6.0.3))(@vue/language-core@3.3.12)(tsx@4.23.15)(typescript@6.0.3)(vue-tsc@3.3.12(typescript@6.0.3))

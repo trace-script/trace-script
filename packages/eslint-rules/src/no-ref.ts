@@ -1,6 +1,6 @@
 import { createSimplePlugin } from 'eslint-factory'
 
-export default createSimplePlugin({
+const noRef: ReturnType<typeof createSimplePlugin> = createSimplePlugin({
   name: 'no-ref',
   create(context) {
     return {
@@ -23,3 +23,5 @@ export default createSimplePlugin({
     }
   },
 })
+
+export default noRef

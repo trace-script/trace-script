@@ -64,7 +64,7 @@ function resolveAlias(source: string, filename: string): string {
   return `@/${srcImport}`
 }
 
-export default createSimplePlugin({
+const noRelativeSrcImport: ReturnType<typeof createSimplePlugin> = createSimplePlugin({
   name: 'no-relative-src-import',
   description: 'Use @/ aliases instead of relative imports within src.',
   include: ['*.ts', '**/*.ts', '*.vue', '**/*.vue'],
@@ -92,3 +92,5 @@ export default createSimplePlugin({
     }
   },
 })
+
+export default noRelativeSrcImport

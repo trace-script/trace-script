@@ -1,6 +1,6 @@
 import { createSimplePlugin } from 'eslint-factory'
 
-export default createSimplePlugin({
+const noTsImportExtension: ReturnType<typeof createSimplePlugin> = createSimplePlugin({
   name: 'no-ts-import-extension',
   include: ['*.ts', '**/*.ts'],
   exclude: ['*.config.ts', '**/*.config.ts'],
@@ -22,3 +22,5 @@ export default createSimplePlugin({
     }
   },
 })
+
+export default noTsImportExtension

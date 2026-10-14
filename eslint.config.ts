@@ -1,5 +1,5 @@
 import antfu from '@antfu/eslint-config'
-import eslintRules from './packages/eslint-rules'
+import eslintRules from '@trace-script/eslint-rules'
 
 export default antfu({
   type: 'lib',

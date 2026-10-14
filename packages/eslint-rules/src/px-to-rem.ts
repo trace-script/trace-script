@@ -66,7 +66,7 @@ function findPxDimensions(text: string): Array<{ start: number, end: number, rep
       continue
     }
 
-    if (index === 0 || !identifierCharacterPattern.test(text[index - 1])) {
+    if (index === 0 || !identifierCharacterPattern.test(text.charAt(index - 1))) {
       urlPattern.lastIndex = index
       if (urlPattern.test(text)) {
         index = skipUrl(text, index)
@@ -97,7 +97,7 @@ function findPxDimensions(text: string): Array<{ start: number, end: number, rep
   return dimensions
 }
 
-export default createSimplePlugin({
+const pxToRem: ReturnType<typeof createSimplePlugin> = createSimplePlugin({
   name: 'px-to-rem',
   description: 'Convert CSS px dimensions to rem using a 16px base.',
   include: ['**/*.css', '**/*.scss', '**/*.vue'],
@@ -110,3 +110,5 @@ export default createSimplePlugin({
     }
   },
 })
+
+export default pxToRem
