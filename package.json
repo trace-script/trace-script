@@ -14,8 +14,8 @@
     "typecheck:root": "vue-tsc --noEmit -p tsconfig.json",
     "test:cov": "vitest --coverage",
     "test": "vitest",
-    "lint": "pnpm --filter @trace-script/eslint-rules build && eslint .",
-    "lint:fix": "pnpm --filter @trace-script/eslint-rules build && eslint --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix",
     "prepare": "simple-git-hooks"
   },
   "devDependencies": {
