@@ -16,8 +16,6 @@ let portState: ContentPortState = { status: 'disconnected' }
 // 建立到 service worker 的长连接。扩展被 reload 后旧上下文会失效并抛出
 // “Extension context invalidated”，用 try/catch 兜底，避免产生未捕获异常。
 function connect(): void {
-  if (typeof chrome === 'undefined' || !chrome.runtime?.id)
-    return
   try {
     const port = chrome.runtime.connect({ name: PAGE_MESSAGE_FIELD.CONTENT_PORT })
     portState = { status: 'connected', port }
