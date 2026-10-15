@@ -37,10 +37,6 @@ interface TracePanelState {
 }
 
 export function useTracePanel(): TracePanelState {
-  return createTracePanel()
-}
-
-function createTracePanel(): TracePanelState {
   const events = deepRef<TraceEventEnvelope[]>([])
   const selectedId = shallowRef('')
   const isPreview = shallowRef(false)
@@ -96,28 +92,68 @@ function createTracePanel(): TracePanelState {
       payload: { callId: 'call_preview', output: 'Tool result received.' },
     },
   ] as TraceEventEnvelope[]
-  const visibleEvents = computed(() => events.value.filter((event) => {
-    const haystack = `${eventName(event)} ${event.eventId} ${event.traceId} ${eventAgent(event)}`.toLowerCase()
-    return (!filter.query || haystack.includes(filter.query.toLowerCase())) && (filter.type === TRACE_FILTER_VALUE.ALL || event.type === filter.type) && (filter.status === TRACE_FILTER_VALUE.ALL || eventStatus(event) === filter.status) && (filter.agent === TRACE_FILTER_VALUE.ALL || eventAgent(event) === filter.agent) && (!filter.onlyErrors || eventStatus(event) === TRACE_STATUS.FAILED)
-  }))
+  const visibleEvents = computed(() => {
+    const query = filter.query.toLowerCase()
+    return events.value.filter((event) => {
+      const agent = eventAgent(event)
+      const status = eventStatus(event)
+      const searchableText = `${eventName(event)} ${event.eventId} ${event.traceId} ${agent}`.toLowerCase()
+      const matchesQuery = !filter.query || searchableText.includes(query)
+      const matchesType = filter.type === TRACE_FILTER_VALUE.ALL || event.type === filter.type
+      const matchesStatus = filter.status === TRACE_FILTER_VALUE.ALL || status === filter.status
+      const matchesAgent = filter.agent === TRACE_FILTER_VALUE.ALL || agent === filter.agent
+      const matchesErrorFilter = !filter.onlyErrors || status === TRACE_STATUS.FAILED
+      return matchesQuery && matchesType && matchesStatus && matchesAgent && matchesErrorFilter
+    })
+  })
   const selectedEvent = computed(() => events.value.find(event => event.eventId === selectedId.value))
-  const agents = computed(() => [TRACE_FILTER_VALUE.ALL, ...new Set(events.value.map(eventAgent).filter(agent => agent !== '—'))])
-  const totalTokens = computed(() => events.value.reduce((sum, event) => sum + (eventTokens(event) ?? 0), 0))
-  const visibleTokens = computed(() => visibleEvents.value.reduce((sum, event) => sum + (eventTokens(event) ?? 0), 0))
-  const failedCount = computed(() => events.value.filter(event => eventStatus(event) === TRACE_STATUS.FAILED).length)
-  const maxDuration = computed(() => events.value.reduce((max, event) => Math.max(max, eventDuration(event)), 0))
-  const totalDuration = computed(() => events.value.reduce((sum, event) => sum + eventDuration(event), 0))
+  const agents = computed(() => {
+    const eventAgents = events.value.map(eventAgent)
+    const namedAgents = eventAgents.filter(agent => agent !== '—')
+    const uniqueAgents = new Set(namedAgents)
+    return [TRACE_FILTER_VALUE.ALL, ...uniqueAgents]
+  })
+  const totalTokens = computed(() => {
+    return events.value.reduce((sum, event) => {
+      const tokens = eventTokens(event) ?? 0
+      return sum + tokens
+    }, 0)
+  })
+  const visibleTokens = computed(() => {
+    return visibleEvents.value.reduce((sum, event) => {
+      const tokens = eventTokens(event) ?? 0
+      return sum + tokens
+    }, 0)
+  })
+  const failedCount = computed(() => {
+    const failedEvents = events.value.filter(event => eventStatus(event) === TRACE_STATUS.FAILED)
+    return failedEvents.length
+  })
+  const maxDuration = computed(() => {
+    return events.value.reduce((max, event) => {
+      const duration = eventDuration(event)
+      return Math.max(max, duration)
+    }, 0)
+  })
+  const totalDuration = computed(() => {
+    return events.value.reduce((sum, event) => {
+      const duration = eventDuration(event)
+      return sum + duration
+    }, 0)
+  })
   const workspaceStyle = computed(() => {
-    const rows = timelineHeight.value > 0 ? `${timelineHeight.value}px` : 'auto'
-    return { gridTemplateRows: `${rows} 1px minmax(0, 1fr)` }
+    const timelineRows = timelineHeight.value > 0 ? `${timelineHeight.value}px` : 'auto'
+    return { gridTemplateRows: `${timelineRows} 1px minmax(0, 1fr)` }
   })
   const contentStyle = computed(() => ({ gridTemplateColumns: `minmax(0, 1fr) 1px ${detailsWidth.value}px` }))
   function handleMessage(message: WorkerToPanelMessage): void {
     if (message.type === EXTENSION_MESSAGE_TYPE.TRACE_QUERY_RESULT) {
       events.value = [...message.events]
     }
-    else if (message.type === EXTENSION_MESSAGE_TYPE.TRACE_EVENTS_APPEND && recording.value && !events.value.some(event => event.eventId === message.event.eventId)) {
-      events.value = [...events.value, message.event]
+    else if (message.type === EXTENSION_MESSAGE_TYPE.TRACE_EVENTS_APPEND && recording.value) {
+      const alreadyReceived = events.value.some(event => event.eventId === message.event.eventId)
+      if (!alreadyReceived)
+        events.value = [...events.value, message.event]
     }
     if (!selectedId.value && events.value[0])
       selectedId.value = events.value[0].eventId
@@ -164,11 +200,16 @@ function createTracePanel(): TracePanelState {
   function resize(event: PointerEvent): void {
     if (!dragging.value)
       return
-    const delta = dragging.value === 'timeline' ? event.clientY - dragOrigin : dragOrigin - event.clientX
-    if (dragging.value === 'timeline')
-      timelineHeight.value = Math.min(360, Math.max(80, dragSize + delta))
-    else
-      detailsWidth.value = Math.min(520, Math.max(260, dragSize + delta))
+    if (dragging.value === 'timeline') {
+      const delta = event.clientY - dragOrigin
+      const requestedHeight = dragSize + delta
+      timelineHeight.value = Math.min(360, Math.max(80, requestedHeight))
+    }
+    else {
+      const delta = dragOrigin - event.clientX
+      const requestedWidth = dragSize + delta
+      detailsWidth.value = Math.min(520, Math.max(260, requestedWidth))
+    }
   }
   function stopResize(): void {
     dragging.value = null
@@ -181,10 +222,15 @@ function createTracePanel(): TracePanelState {
   }
   function keyboard(event: KeyboardEvent): void {
     const index = visibleEvents.value.findIndex(item => item.eventId === selectedId.value)
-    if (event.key === 'ArrowDown' && visibleEvents.value.length)
-      selectedId.value = visibleEvents.value[Math.min(index + 1, visibleEvents.value.length - 1)]!.eventId
-    if (event.key === 'ArrowUp' && visibleEvents.value.length)
-      selectedId.value = visibleEvents.value[Math.max(index - 1, 0)]!.eventId
+    if (event.key === 'ArrowDown' && visibleEvents.value.length) {
+      const lastIndex = visibleEvents.value.length - 1
+      const nextIndex = Math.min(index + 1, lastIndex)
+      selectedId.value = visibleEvents.value[nextIndex]!.eventId
+    }
+    if (event.key === 'ArrowUp' && visibleEvents.value.length) {
+      const previousIndex = Math.max(index - 1, 0)
+      selectedId.value = visibleEvents.value[previousIndex]!.eventId
+    }
     if (event.key === 'Escape')
       selectedId.value = ''
   }

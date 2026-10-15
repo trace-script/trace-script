@@ -70,11 +70,32 @@ const stressOverviewItems = createStressOverviewItems(2400)
 
 const buttonLabel = computed(() => running.value ? '运行中' : '运行 Agent')
 const runCountLabel = computed(() => sentCount.value === 0 ? '尚未运行' : `${sentCount.value} 次运行`)
-const formattedRequest = computed(() => lastRequest.value ? JSON.stringify(lastRequest.value, null, 2) : '{\n  "input": []\n}')
-const formattedResponse = computed(() => lastResponse.value ? JSON.stringify(lastResponse.value, null, 2) : '{\n  "output": []\n}')
+const formattedRequest = computed(() => {
+  if (!lastRequest.value)
+    return '{\n  "input": []\n}'
+
+  return JSON.stringify(lastRequest.value, null, 2)
+})
+const formattedResponse = computed(() => {
+  if (!lastResponse.value)
+    return '{\n  "output": []\n}'
+
+  return JSON.stringify(lastResponse.value, null, 2)
+})
 const totalTokens = computed(() => lastResponse.value ? lastResponse.value.usage.total_tokens.toString() : '—')
 const selectedWorkId = computed(() => selectedWork.value ? selectedWork.value.id : '')
 const displayedOverviewItems = computed(() => stressMode.value ? stressOverviewItems : overviewItems)
+const completedSteps = computed(() => {
+  const doneItems = timeline.value.filter(item => item.state === 'done')
+  return doneItems.length
+})
+const statusIndicatorClass = computed(() => {
+  if (running.value)
+    return 'bg-indigo-500'
+  if (answer.value)
+    return 'bg-emerald-500'
+  return 'bg-slate-300'
+})
 
 const weatherTool: WeatherTool = {
   type: 'function',
@@ -118,7 +139,33 @@ function wait(milliseconds: number): Promise<void> {
 }
 
 function setTimeline(index: number, state: TimelineItem['state'], detail: string): void {
-  timeline.value = timeline.value.map((item, itemIndex) => ({ ...item, state: itemIndex < index ? 'done' : itemIndex === index ? state : 'idle', detail: itemIndex === index ? detail : item.detail }))
+  timeline.value = timeline.value.map((item, itemIndex) => {
+    const isCurrentStep = itemIndex === index
+    let nextState: TimelineItem['state'] = 'idle'
+    if (itemIndex < index)
+      nextState = 'done'
+    else if (isCurrentStep)
+      nextState = state
+
+    const nextDetail = isCurrentStep ? detail : item.detail
+    return { ...item, state: nextState, detail: nextDetail }
+  })
+}
+
+function timelineStepClass(item: TimelineItem): string {
+  if (item.state === 'done')
+    return 'bg-emerald-100 text-emerald-700'
+  if (item.state === 'active')
+    return 'bg-indigo-100 text-indigo-600 ring-4 ring-indigo-50'
+  return 'bg-slate-100 text-slate-400'
+}
+
+function timelineStepLabel(item: TimelineItem, index: number): string | number {
+  if (item.state === 'done')
+    return '✓'
+  if (item.state === 'active')
+    return '•'
+  return index + 1
 }
 
 async function responsesCreate(request: ModelRequest): Promise<ModelResponse> {
@@ -126,9 +173,11 @@ async function responsesCreate(request: ModelRequest): Promise<ModelResponse> {
   const toolResult = request.input.find((item): item is FunctionCallOutput => 'type' in item && item.type === 'function_call_output')
   if (!toolResult) {
     const firstInput = request.input[0]
-    const requestedCity = firstInput && 'role' in firstInput && firstInput.role === 'user'
-      ? firstInput.content.replace('请告诉我', '').replace('的天气', '')
-      : '北京'
+    let requestedCity = '北京'
+    if (firstInput && 'role' in firstInput && firstInput.role === 'user') {
+      const cityWithSuffix = firstInput.content.replace('请告诉我', '')
+      requestedCity = cityWithSuffix.replace('的天气', '')
+    }
     return {
       id: `resp_${Date.now().toString(36)}`,
       output: [{
@@ -193,7 +242,17 @@ async function answerWeather(userText: string): Promise<string> {
     if (!toolResult.success)
       throw new Error(`记录工具结果失败：${toolResult.reason}`)
 
-    const secondRequest: ModelRequest = { model: firstRequest.model, input: [...firstRequest.input, ...firstResponse.output, { type: 'function_call_output', call_id: call.call_id, output: toolOutput }], tools: firstRequest.tools }
+    const toolResultInput: FunctionCallOutput = {
+      type: 'function_call_output',
+      call_id: call.call_id,
+      output: toolOutput,
+    }
+    const followUpInput = [...firstRequest.input, ...firstResponse.output, toolResultInput]
+    const secondRequest: ModelRequest = {
+      model: firstRequest.model,
+      input: followUpInput,
+      tools: firstRequest.tools,
+    }
     lastRequest.value = secondRequest
     const secondRequestResult = trace.recordRequest(secondRequest)
     if (!secondRequestResult.success)
@@ -222,7 +281,10 @@ async function runWeatherAgent() {
   running.value = true
   answer.value = ''
   status.value = '正在运行 Responses 流程…'
-  timeline.value = timeline.value.map(item => ({ ...item, state: item.type === 'input' ? 'active' : 'idle' }))
+  timeline.value = timeline.value.map((item) => {
+    const state = item.type === 'input' ? 'active' : 'idle'
+    return { ...item, state }
+  })
   try {
     answer.value = await answerWeather(`请告诉我${city.value}的天气`)
     sentCount.value++
@@ -335,12 +397,12 @@ async function runWeatherAgent() {
               运行流程
             </h2>
           </div>
-          <span class="font-mono text-[10px] text-slate-400">{{ timeline.filter(item => item.state === 'done').length }} / 4 完成</span>
+          <span class="font-mono text-[10px] text-slate-400">{{ completedSteps }} / 4 完成</span>
         </div>
         <div class="mt-6">
           <div v-for="(item, index) in timeline" :key="item.type" class="flex min-h-12 items-start">
             <div class="flex w-7 shrink-0 flex-col items-center">
-              <span class="z-10 grid h-5 w-5 place-items-center rounded-full font-mono text-[10px]" :class="item.state === 'done' ? 'bg-emerald-100 text-emerald-700' : item.state === 'active' ? 'bg-indigo-100 text-indigo-600 ring-4 ring-indigo-50' : 'bg-slate-100 text-slate-400'">{{ item.state === 'done' ? '✓' : item.state === 'active' ? '•' : index + 1 }}</span>
+              <span class="z-10 grid h-5 w-5 place-items-center rounded-full font-mono text-[10px]" :class="timelineStepClass(item)">{{ timelineStepLabel(item, index) }}</span>
               <span v-if="index < timeline.length - 1" class="h-7 w-px bg-slate-200" />
             </div>
             <div class="flex flex-1 flex-col gap-0.5 pb-4 pl-3">
@@ -382,7 +444,7 @@ async function runWeatherAgent() {
           <p>运行后，模型的最终回答会显示在这里</p>
         </div>
         <p class="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4 font-mono text-[10px] text-slate-400" role="status" aria-live="polite">
-          <span class="h-1.5 w-1.5 rounded-full" :class="running ? 'bg-indigo-500' : answer ? 'bg-emerald-500' : 'bg-slate-300'" />{{ status }}
+          <span class="h-1.5 w-1.5 rounded-full" :class="statusIndicatorClass" />{{ status }}
         </p>
       </div>
     </section>
