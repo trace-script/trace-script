@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import type { AgentWorkOverviewItem, AgentWorkStatus } from '@trace-script/vue-components'
 import { createTraceSdk } from '@trace-script/sdk'
+import { AGENT_WORK_STATUS, AgentWorkOverview } from '@trace-script/vue-components'
 import { computed, shallowRef } from 'vue'
 
 interface WeatherTool {
@@ -54,12 +56,25 @@ const timeline = shallowRef<TimelineItem[]>([
 ])
 const lastRequest = shallowRef<ModelRequest | false>(false)
 const lastResponse = shallowRef<ModelResponse | false>(false)
+const selectedWork = shallowRef<AgentWorkOverviewItem | false>(false)
+const stressMode = shallowRef(false)
+const overviewItems: AgentWorkOverviewItem[] = [
+  { id: 'session', name: 'Initialize session', group: 'Agent', startTime: 0, duration: 180, status: AGENT_WORK_STATUS.SUCCESS },
+  { id: 'reasoning', name: 'Plan next action', group: 'Agent', startTime: 140, duration: 620, status: AGENT_WORK_STATUS.SUCCESS },
+  { id: 'model-1', name: 'Request tool selection', group: 'Model', startTime: 240, duration: 420, status: AGENT_WORK_STATUS.SUCCESS },
+  { id: 'weather', name: 'Run get_weather', group: 'Tool', startTime: 700, duration: 520, status: AGENT_WORK_STATUS.SUCCESS },
+  { id: 'model-2', name: 'Generate final response', group: 'Model', startTime: 1120, duration: 680, status: AGENT_WORK_STATUS.RUNNING },
+  { id: 'cleanup', name: 'Discard stale context', group: 'Agent', startTime: 1480, duration: 160, status: AGENT_WORK_STATUS.CANCELLED },
+]
+const stressOverviewItems = createStressOverviewItems(2400)
 
 const buttonLabel = computed(() => running.value ? '运行中' : '运行 Agent')
 const runCountLabel = computed(() => sentCount.value === 0 ? '尚未运行' : `${sentCount.value} 次运行`)
 const formattedRequest = computed(() => lastRequest.value ? JSON.stringify(lastRequest.value, null, 2) : '{\n  "input": []\n}')
 const formattedResponse = computed(() => lastResponse.value ? JSON.stringify(lastResponse.value, null, 2) : '{\n  "output": []\n}')
 const totalTokens = computed(() => lastResponse.value ? lastResponse.value.usage.total_tokens.toString() : '—')
+const selectedWorkId = computed(() => selectedWork.value ? selectedWork.value.id : '')
+const displayedOverviewItems = computed(() => stressMode.value ? stressOverviewItems : overviewItems)
 
 const weatherTool: WeatherTool = {
   type: 'function',
@@ -72,6 +87,30 @@ const weatherTool: WeatherTool = {
     additionalProperties: false,
   },
   strict: true,
+}
+
+function statusForIndex(index: number): AgentWorkStatus {
+  switch (index % 4) {
+    case 1:
+      return AGENT_WORK_STATUS.RUNNING
+    case 2:
+      return AGENT_WORK_STATUS.FAILED
+    case 3:
+      return AGENT_WORK_STATUS.CANCELLED
+    default:
+      return AGENT_WORK_STATUS.SUCCESS
+  }
+}
+
+function createStressOverviewItems(count: number): AgentWorkOverviewItem[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `stress-${index}`,
+    name: `Agent work ${index + 1}`,
+    group: `Worker ${index % 8 + 1}`,
+    startTime: index * 47 % 120000,
+    duration: 40 + index * 83 % 2600,
+    status: statusForIndex(index),
+  }))
 }
 
 function wait(milliseconds: number): Promise<void> {
@@ -116,6 +155,15 @@ async function responsesCreate(request: ModelRequest): Promise<ModelResponse> {
 async function getWeather(requestedCity: string): Promise<WeatherData> {
   await wait(520)
   return { city: requestedCity, condition: '晴', temperature: 22 }
+}
+
+function selectOverviewItem(item: AgentWorkOverviewItem): void {
+  selectedWork.value = item
+}
+
+function setStressMode(value: boolean): void {
+  stressMode.value = value
+  selectedWork.value = false
 }
 
 async function answerWeather(userText: string): Promise<string> {
@@ -217,6 +265,40 @@ async function runWeatherAgent() {
       </div>
       <div class="hidden shrink-0 items-center gap-2 rounded-full border border-indigo-100 bg-white px-4 py-2 font-mono text-[10px] text-slate-500 shadow-sm sm:flex">
         <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" /> OpenAI Responses
+      </div>
+    </section>
+    <section class="mx-auto max-w-6xl px-6 pb-12 lg:px-8">
+      <div class="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm shadow-slate-200/40">
+        <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p class="mb-2 font-mono text-[10px] font-medium tracking-[.18em] text-indigo-600">
+              COMPONENT PLAYGROUND
+            </p>
+            <h2 class="text-base font-semibold tracking-tight">
+              AgentWorkOverview
+            </h2>
+          </div>
+          <div class="flex flex-wrap items-center justify-end gap-2">
+            <div class="flex rounded-lg bg-slate-100 p-1" aria-label="Timeline data size">
+              <button type="button" class="rounded-md px-2.5 py-1 font-mono text-[10px]" :class="stressMode ? 'text-slate-500' : 'bg-white text-indigo-700 shadow-sm'" @click="setStressMode(false)">
+                6 items
+              </button>
+              <button type="button" class="rounded-md px-2.5 py-1 font-mono text-[10px]" :class="stressMode ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'" @click="setStressMode(true)">
+                2,400 items
+              </button>
+            </div>
+            <p class="font-mono text-[10px] text-slate-500" aria-live="polite">
+              {{ selectedWork ? `Selected: ${selectedWork.name}` : `${displayedOverviewItems.length.toLocaleString()} events` }}
+            </p>
+          </div>
+        </div>
+        <AgentWorkOverview
+          aria-label="Agent execution timeline demo"
+          :items="displayedOverviewItems"
+          :minimum-width="stressMode ? 4800 : 820"
+          :selected-id="selectedWorkId"
+          @select="selectOverviewItem"
+        />
       </div>
     </section>
     <section class="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-6 lg:grid-cols-2 lg:px-8">

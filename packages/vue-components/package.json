@@ -1,0 +1,33 @@
+{
+  "name": "@trace-script/vue-components",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "author": "lonewolfyx <https://github.com/lonewolfyx>",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "peerDependencies": {
+    "vue": "catalog:ui"
+  },
+  "devDependencies": {
+    "@trace-script/tsconfig": "workspace:*",
+    "@vitejs/plugin-vue": "catalog:build",
+    "@vue/test-utils": "catalog:test",
+    "happy-dom": "catalog:test",
+    "typescript": "catalog:dev",
+    "vitest": "catalog:test",
+    "vue": "catalog:ui",
+    "vue-tsc": "catalog:dev"
+  }
+}

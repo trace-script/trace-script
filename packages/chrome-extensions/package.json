@@ -33,6 +33,7 @@
     "@iconify/vue": "catalog:",
     "@trace-script/core": "workspace:*",
     "@trace-script/shared": "workspace:*",
+    "@trace-script/vue-components": "workspace:*",
     "@vueuse/core": "catalog:",
     "vue": "catalog:ui"
   },

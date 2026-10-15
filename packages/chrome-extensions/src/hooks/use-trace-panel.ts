@@ -33,6 +33,7 @@ interface TracePanelState {
   clearEvents: () => void
   addPreviewEvents: () => void
   startResize: (kind: 'timeline' | 'details', event: PointerEvent) => void
+  nudgeTimeline: (delta: number) => void
 }
 
 export function useTracePanel(): TracePanelState {
@@ -53,7 +54,8 @@ function createTracePanel(): TracePanelState {
     agent: TRACE_FILTER_VALUE.ALL,
     onlyErrors: false,
   })
-  const timelineHeight = shallowRef(112)
+  // 0 表示「按内容自适应高度」，用户拖拽或按键调整后变为显式像素高度。
+  const timelineHeight = shallowRef(0)
   const detailsWidth = shallowRef(500)
   const dragging = shallowRef<'timeline' | 'details' | null>(null)
   let dragOrigin = 0
@@ -105,7 +107,10 @@ function createTracePanel(): TracePanelState {
   const failedCount = computed(() => events.value.filter(event => eventStatus(event) === TRACE_STATUS.FAILED).length)
   const maxDuration = computed(() => events.value.reduce((max, event) => Math.max(max, eventDuration(event)), 0))
   const totalDuration = computed(() => events.value.reduce((sum, event) => sum + eventDuration(event), 0))
-  const workspaceStyle = computed(() => ({ gridTemplateRows: `${timelineHeight.value}px 1px minmax(0, 1fr)` }))
+  const workspaceStyle = computed(() => {
+    const rows = timelineHeight.value > 0 ? `${timelineHeight.value}px` : 'auto'
+    return { gridTemplateRows: `${rows} 1px minmax(0, 1fr)` }
+  })
   const contentStyle = computed(() => ({ gridTemplateColumns: `minmax(0, 1fr) 1px ${detailsWidth.value}px` }))
   function handleMessage(message: WorkerToPanelMessage): void {
     if (message.type === EXTENSION_MESSAGE_TYPE.TRACE_QUERY_RESULT) {
@@ -143,7 +148,15 @@ function createTracePanel(): TracePanelState {
   function startResize(kind: 'timeline' | 'details', event: PointerEvent): void {
     dragging.value = kind
     dragOrigin = kind === 'timeline' ? event.clientY : event.clientX
-    dragSize = kind === 'timeline' ? timelineHeight.value : detailsWidth.value
+    if (kind === 'timeline') {
+      const handle = event.currentTarget as HTMLElement
+      dragSize = timelineHeight.value > 0
+        ? timelineHeight.value
+        : handle.previousElementSibling?.getBoundingClientRect().height ?? 140
+    }
+    else {
+      dragSize = detailsWidth.value
+    }
     window.addEventListener('pointermove', resize)
     window.addEventListener('pointerup', stopResize, { once: true })
     ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
@@ -160,6 +173,11 @@ function createTracePanel(): TracePanelState {
   function stopResize(): void {
     dragging.value = null
     window.removeEventListener('pointermove', resize)
+  }
+  function nudgeTimeline(delta: number): void {
+    const autoHeight = (document.querySelector('.agent-work-overview') as HTMLElement | null)?.offsetHeight ?? 140
+    const current = timelineHeight.value > 0 ? timelineHeight.value : autoHeight
+    timelineHeight.value = Math.min(360, Math.max(80, current + delta))
   }
   function keyboard(event: KeyboardEvent): void {
     const index = visibleEvents.value.findIndex(item => item.eventId === selectedId.value)
@@ -219,5 +237,6 @@ function createTracePanel(): TracePanelState {
     clearEvents,
     addPreviewEvents,
     startResize,
+    nudgeTimeline,
   }
 }

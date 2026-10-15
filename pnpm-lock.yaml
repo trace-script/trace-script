@@ -184,6 +184,9 @@ importers:
       '@trace-script/shared':
         specifier: workspace:*
         version: link:../shared
+      '@trace-script/vue-components':
+        specifier: workspace:*
+        version: link:../vue-components
       '@vueuse/core':
         specifier: 'catalog:'
         version: 15.0.0(vue@3.5.43(typescript@6.0.3))
@@ -263,6 +266,9 @@ importers:
 
   packages/playground:
     dependencies:
+      '@trace-script/vue-components':
+        specifier: workspace:*
+        version: link:../vue-components
       vue:
         specifier: catalog:ui
         version: 3.5.43(typescript@6.0.3)
@@ -342,6 +348,33 @@ importers:
       '@lonewolfyx/tsconfig':
         specifier: catalog:config
         version: 0.0.6(typescript@6.0.3)
+
+  packages/vue-components:
+    devDependencies:
+      '@trace-script/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@vitejs/plugin-vue':
+        specifier: catalog:build
+        version: 6.0.9(vite@8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))(vue@3.5.43(typescript@6.0.3))
+      '@vue/test-utils':
+        specifier: catalog:test
+        version: 2.5.1(@vue/compiler-dom@3.5.43)(@vue/server-renderer@3.5.43)(vue@3.5.43(typescript@6.0.3))
+      happy-dom:
+        specifier: catalog:test
+        version: 20.14.5
+      typescript:
+        specifier: catalog:dev
+        version: 6.0.3
+      vitest:
+        specifier: catalog:test
+        version: 5.0.2(@types/node@26.6.3)(@vitest/coverage-v8@5.0.2)(happy-dom@20.14.5)(vite@8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      vue:
+        specifier: catalog:ui
+        version: 3.5.43(typescript@6.0.3)
+      vue-tsc:
+        specifier: catalog:dev
+        version: 3.3.12(typescript@6.0.3)
 
 packages:
 
