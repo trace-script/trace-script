@@ -41,6 +41,14 @@ interface TimelineItem {
   state: 'idle' | 'done' | 'active'
 }
 
+enum StressWorkStatusIndex {
+  SUCCESS,
+  RUNNING,
+  FAILED,
+  CANCELLED,
+  COUNT,
+}
+
 const sdk = createTraceSdk()
 const city = shallowRef('北京')
 const sentCount = shallowRef(0)
@@ -111,12 +119,12 @@ const weatherTool: WeatherTool = {
 }
 
 function statusForIndex(index: number): AgentWorkStatus {
-  switch (index % 4) {
-    case 1:
+  switch (index % StressWorkStatusIndex.COUNT) {
+    case StressWorkStatusIndex.RUNNING:
       return AGENT_WORK_STATUS.RUNNING
-    case 2:
+    case StressWorkStatusIndex.FAILED:
       return AGENT_WORK_STATUS.FAILED
-    case 3:
+    case StressWorkStatusIndex.CANCELLED:
       return AGENT_WORK_STATUS.CANCELLED
     default:
       return AGENT_WORK_STATUS.SUCCESS

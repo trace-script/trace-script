@@ -350,6 +350,10 @@ importers:
         version: 0.0.6(typescript@6.0.3)
 
   packages/vue-components:
+    dependencies:
+      '@trace-script/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@trace-script/tsconfig':
         specifier: workspace:*

@@ -20,6 +20,9 @@
   "peerDependencies": {
     "vue": "catalog:ui"
   },
+  "dependencies": {
+    "@trace-script/shared": "workspace:*"
+  },
   "devDependencies": {
     "@trace-script/tsconfig": "workspace:*",
     "@vitejs/plugin-vue": "catalog:build",

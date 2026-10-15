@@ -7,6 +7,8 @@ import { computed, ref as deepRef, onMounted, onUnmounted, reactive, shallowRef 
 import { EXTENSION_MESSAGE_TYPE, EXTENSION_PORT_NAME } from '@/messages'
 import { eventAgent, eventDuration, eventName, eventStatus, eventTimestamp, eventTokens, TRACE_FILTER_VALUE, TRACE_STATUS } from '@/utils/ui-model'
 
+const TIMELINE_FALLBACK_HEIGHT = 140
+
 interface TracePanelState {
   events: Ref<TraceEventEnvelope[]>
   selectedId: Ref<string>
@@ -188,7 +190,7 @@ export function useTracePanel(): TracePanelState {
       const handle = event.currentTarget as HTMLElement
       dragSize = timelineHeight.value > 0
         ? timelineHeight.value
-        : handle.previousElementSibling?.getBoundingClientRect().height ?? 140
+        : handle.previousElementSibling?.getBoundingClientRect().height ?? TIMELINE_FALLBACK_HEIGHT
     }
     else {
       dragSize = detailsWidth.value
@@ -216,7 +218,7 @@ export function useTracePanel(): TracePanelState {
     window.removeEventListener('pointermove', resize)
   }
   function nudgeTimeline(delta: number): void {
-    const autoHeight = (document.querySelector('.agent-work-overview') as HTMLElement | null)?.offsetHeight ?? 140
+    const autoHeight = (document.querySelector('.agent-work-overview') as HTMLElement | null)?.offsetHeight ?? TIMELINE_FALLBACK_HEIGHT
     const current = timelineHeight.value > 0 ? timelineHeight.value : autoHeight
     timelineHeight.value = Math.min(360, Math.max(80, current + delta))
   }

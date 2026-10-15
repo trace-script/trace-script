@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { PropType } from 'vue'
 import type { AgentWorkOverviewItem, AgentWorkOverviewRange, AgentWorkOverviewTheme } from './model'
+import { formatMilliseconds } from '@trace-script/shared'
 import { computed, nextTick, onUnmounted, reactive, shallowRef, useId, useTemplateRef, watch } from 'vue'
-import { createAgentWorkOverviewLayout, createAgentWorkOverviewTicks, findAgentWorkOverviewItem, formatAgentWorkDuration, niceTickStep } from './timeline'
+import { createAgentWorkOverviewLayout, createAgentWorkOverviewTicks, findAgentWorkOverviewItem, niceTickStep } from './timeline'
 
 const props = defineProps({
   ariaLabel: {
@@ -82,7 +83,7 @@ const timelineTicks = computed(() => {
 const focusedId = computed(() => layout.value.rows[focusedIndex.value]?.item.id ?? '')
 const focusedLabel = computed(() => {
   const row = layout.value.rows[focusedIndex.value]
-  return row ? `${row.item.name}, ${row.item.group}, ${formatAgentWorkDuration(row.duration)}` : ''
+  return row ? `${row.item.name}, ${row.item.group}, ${formatMilliseconds(row.duration)}` : ''
 })
 const activeOptionId = `${instanceId}-option`
 
@@ -246,7 +247,7 @@ function handlePointerMove(event: PointerEvent): void {
   const hostBounds = host.getBoundingClientRect()
   if (hoveredId.value !== item.id) {
     const row = layout.value.rows.find(candidate => candidate.item.id === item.id)
-    tooltip.text = `${item.name} · ${item.group} · ${formatAgentWorkDuration(Math.max(0, item.duration))} · ${row?.overlapCount ? 'parallel' : 'serial'}`
+    tooltip.text = `${item.name} · ${item.group} · ${formatMilliseconds(Math.max(0, item.duration))} · ${row?.overlapCount ? 'parallel' : 'serial'}`
   }
   hoveredId.value = item.id
   tooltip.x = event.clientX - hostBounds.left + 12
@@ -497,7 +498,7 @@ onUnmounted(() => {
               :key="tick.time"
               class="agent-work-overview__tick"
               :style="{ left: `${tick.position}%` }"
-            >{{ formatAgentWorkDuration(tick.time) }}</span>
+            >{{ formatMilliseconds(tick.time) }}</span>
           </div>
         </div>
       </header>

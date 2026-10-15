@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { AGENT_WORK_STATUS } from '../src/model'
-import { createAgentWorkOverviewLayout, createAgentWorkOverviewTicks, findAgentWorkOverviewItem, formatAgentWorkDuration, niceTickStep } from '../src/timeline'
+import { createAgentWorkOverviewLayout, createAgentWorkOverviewTicks, findAgentWorkOverviewItem, niceTickStep } from '../src/timeline'
 
 const items = [
   { id: 'model', name: 'Model request', group: 'Model', startTime: 120, duration: 80, status: AGENT_WORK_STATUS.SUCCESS },
@@ -34,11 +34,6 @@ describe('agent work overview timeline', () => {
     expect(findAgentWorkOverviewItem(layout, 1, 1, 600, 32, 3)).toEqual(items[1])
     expect(findAgentWorkOverviewItem(layout, 598, 65, 600, 32, 3)).toEqual(items[2])
     expect(findAgentWorkOverviewItem(layout, 400, 65, 600, 32, 3)).toBeFalsy()
-  })
-
-  it('formats millisecond and second durations', () => {
-    expect(formatAgentWorkDuration(420)).toBe('420 ms')
-    expect(formatAgentWorkDuration(1250)).toBe('1.3 s')
   })
 
   it('generates ticks at a fixed time step from zero to the total duration', () => {
