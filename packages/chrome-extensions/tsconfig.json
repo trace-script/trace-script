@@ -5,5 +5,9 @@
       "chrome",
       "node"
     ]
-  }
+  },
+  "include": [
+    "scripts",
+    "src/**/*"
+  ]
 }
