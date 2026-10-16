@@ -45,13 +45,16 @@ For this skill, use lowercase types, concise imperative descriptions, and no tra
 
 ## Body
 
-Cover these points in the repository's template, or use `## Summary` and `## Verification` when no template exists:
+Use the repository's `.github/PULL_REQUEST_TEMPLATE.md` sections — `Linked issue`, `Context`, and `Description` — and fill each with content, removing the template's HTML-comment instructions. See [PR body guidance](references/pr-body.md).
+
+Cover these points across those sections:
 
 - The concrete problem or capability, the resulting behavior, and why this approach.
 - Actual verification commands and outcomes, including anything important that remains unverified.
+- Ablation findings and limitations when a design was removed or retained.
 - Related issues when they exist. Use `closes #123` or `fixes #123` only when merging should close that issue; otherwise use `refs #123`.
 
-Add a change map, behavior diagram, risk table, visual comparison, or rollout notes only when they help a reviewer assess this change. See [PR body guidance](references/pr-body.md).
+Add a change map, behavior diagram, risk table, visual comparison, or rollout notes only when they help a reviewer assess this change.
 
 ## Writing and Evidence
 
