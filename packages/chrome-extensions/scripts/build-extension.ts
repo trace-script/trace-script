@@ -1,4 +1,5 @@
-import { cp, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { execFileSync } from 'node:child_process'
+import { readdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from 'vite'
@@ -7,13 +8,20 @@ import { externalizeNuxtPage, resolveEntryAlias } from './extension-page'
 
 const packageDirectory = fileURLToPath(new URL('..', import.meta.url))
 const sourceDirectory = join(packageDirectory, 'src')
-const generatedDirectory = join(packageDirectory, '.output/public')
 const development = process.argv.includes('--development')
 const mode = development ? 'development' : 'production'
-const outputDirectory = join(packageDirectory, development ? 'dist-dev' : 'dist')
+const outputDirectoryName = development ? 'dist-dev' : 'dist'
+const outputDirectory = join(packageDirectory, outputDirectoryName)
 
 await rm(outputDirectory, { recursive: true, force: true })
-await cp(generatedDirectory, outputDirectory, { recursive: true })
+execFileSync('nuxt', ['generate'], {
+  cwd: packageDirectory,
+  env: {
+    ...process.env,
+    EXTENSION_OUTPUT_DIRECTORY: outputDirectoryName,
+  },
+  stdio: 'inherit',
+})
 
 const generatedPanelPage = join(outputDirectory, 'index.html')
 const panelPage = join(outputDirectory, 'panel.html')

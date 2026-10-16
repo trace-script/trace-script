@@ -1,5 +1,7 @@
 import tailwindcss from '@tailwindcss/vite'
 
+const extensionOutputDirectory = process.env.EXTENSION_OUTPUT_DIRECTORY ?? 'dist'
+
 export default defineNuxtConfig({
   srcDir: 'src/',
   ssr: false,
@@ -29,6 +31,9 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: 'static',
+    output: {
+      publicDir: extensionOutputDirectory,
+    },
   },
   experimental: {
     appManifest: false,

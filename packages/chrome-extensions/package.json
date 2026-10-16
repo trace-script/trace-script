@@ -23,9 +23,9 @@
     "trace-script"
   ],
   "scripts": {
-    "build": "nuxt generate && tsx scripts/build-extension.ts",
+    "build": "tsx scripts/build-extension.ts",
     "dev": "nuxt dev",
-    "dev:extension": "nuxt generate && tsx scripts/build-extension.ts --development",
+    "dev:extension": "tsx scripts/build-extension.ts --development",
     "postinstall": "nuxt prepare",
     "test": "vitest",
     "typecheck": "nuxt typecheck"
