@@ -34,7 +34,7 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'static',
     output: {
-      publicDir: 'dist',
+      ...(process.env.NODE_ENV === 'production' ? { publicDir: 'dist' } : {}),
     },
   },
   experimental: {

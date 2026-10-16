@@ -7,7 +7,12 @@
     ]
   },
   "include": [
+    "./.nuxt/nuxt.d.ts",
+    "./.nuxt/nuxt.node.d.ts",
     "scripts",
-    "src/**/*"
+    "tests",
+    "src/**/*",
+    "./nuxt.config.*",
+    "./vitest.config.ts"
   ]
 }
