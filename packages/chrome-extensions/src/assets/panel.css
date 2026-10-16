@@ -1,0 +1,89 @@
+@import 'tailwindcss' source('../');
+
+@source inline("timeline-layout-{80..360..4}");
+@source inline("details-layout-{260..520..4}");
+
+@theme {
+  --font-sans: Inter, Roboto, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-panel-bg: #202124;
+  --color-panel-raised: #292a2d;
+  --color-panel-surface: #242528;
+  --color-divider: #35363a;
+  --color-control-bg: #303134;
+  --color-control-hover: #3c4043;
+  --color-control-border: #5f6368;
+  --color-accent: #8ab4f8;
+  --color-panel-text: #e8eaed;
+  --color-panel-muted: #9aa0a6;
+  --color-success: #81c995;
+  --color-warning: #fdd663;
+  --color-danger: #f28b82;
+}
+
+@utility timeline-layout-auto {
+  grid-template-rows: auto 1px minmax(0, 1fr);
+}
+
+@utility timeline-layout-* {
+  grid-template-rows: calc(--value(integer) * 1px) 1px minmax(0, 1fr);
+}
+
+@utility details-layout-* {
+  grid-template-columns: minmax(0, 1fr) 1px calc(--value(integer) * 1px);
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #__nuxt {
+    width: 100%;
+    height: 100%;
+  }
+
+  body {
+    min-width: 45rem;
+    overflow: hidden;
+    background: var(--color-panel-bg);
+    color: var(--color-panel-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible {
+    outline: 1px solid var(--color-accent);
+    outline-offset: -1px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 0.625rem;
+    height: 0.625rem;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-panel-bg);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border: 0.125rem solid var(--color-panel-bg);
+    border-radius: 0.5rem;
+    background: var(--color-control-border);
+  }
+}

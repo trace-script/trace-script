@@ -23,11 +23,11 @@
     "trace-script"
   ],
   "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch --mode development",
-    "dev:panel": "vite --mode development",
+    "build": "nuxt generate && tsx scripts/build-extension.ts",
+    "dev": "nuxt dev",
+    "dev:extension": "nuxt generate && tsx scripts/build-extension.ts --development",
     "test": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "nuxt typecheck"
   },
   "dependencies": {
     "@iconify/vue": "catalog:",
@@ -40,9 +40,11 @@
   "devDependencies": {
     "@tailwindcss/vite": "catalog:build",
     "@trace-script/metadata": "workspace:*",
-    "@trace-script/tsconfig": "workspace:*",
     "@types/chrome": "catalog:types",
     "@types/node": "catalog:types",
+    "nuxt": "catalog:build",
+    "tailwindcss": "catalog:build",
+    "tsx": "catalog:dev",
     "typescript": "catalog:dev",
     "vite": "catalog:build"
   }

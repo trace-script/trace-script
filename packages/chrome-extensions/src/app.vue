@@ -2,12 +2,12 @@
 import type { AgentWorkOverviewItem } from '@trace-script/vue-components'
 import { AgentWorkOverview } from '@trace-script/vue-components'
 import { computed } from 'vue'
-import { useTracePanel } from './hooks/use-trace-panel'
-import { toOverviewItems } from './utils/overview-model'
-import EventDetails from './views/EventDetails.vue'
-import EventTable from './views/EventTable.vue'
-import TraceStatusBar from './views/TraceStatusBar.vue'
-import TraceToolbar from './views/TraceToolbar.vue'
+import { useTracePanel } from '@/hooks/use-trace-panel'
+import { toOverviewItems } from '@/utils/overview-model'
+import EventDetails from '@/views/EventDetails.vue'
+import EventTable from '@/views/EventTable.vue'
+import TraceStatusBar from '@/views/TraceStatusBar.vue'
+import TraceToolbar from '@/views/TraceToolbar.vue'
 
 const {
   events,
@@ -26,8 +26,8 @@ const {
   maxDuration,
   totalDuration,
   detailsWidth,
-  workspaceStyle,
-  contentStyle,
+  workspaceClass,
+  contentClass,
   toggleRecording,
   selectEvent,
   clearEvents,
@@ -44,7 +44,7 @@ function onOverviewSelect(item: AgentWorkOverviewItem): void {
 </script>
 
 <template>
-  <main class="trace-app">
+  <main class="flex size-full flex-col overflow-hidden bg-panel-bg">
     <TraceToolbar
       v-model:query="filter.query"
       v-model:type="filter.type"
@@ -63,15 +63,16 @@ function onOverviewSelect(item: AgentWorkOverviewItem): void {
       @toggle-filters="filtersVisible = !filtersVisible"
       @toggle-errors="filter.onlyErrors = !filter.onlyErrors"
     />
-    <div class="trace-workspace" :style="workspaceStyle">
+    <div class="grid min-h-0 flex-1" :class="workspaceClass">
       <AgentWorkOverview
+        class="min-h-0 max-h-90 rounded-none border-0"
         :items="overviewItems"
         :selected-id="selectedId"
         theme="dark"
         @select="onOverviewSelect"
       />
       <div
-        class="resize-handle resize-handle-vertical"
+        class="z-2 h-px cursor-row-resize bg-divider hover:bg-accent focus:bg-accent"
         role="separator"
         aria-label="Resize timeline height"
         tabindex="0"
@@ -79,14 +80,14 @@ function onOverviewSelect(item: AgentWorkOverviewItem): void {
         @keydown.down.prevent="nudgeTimeline(8)"
         @keydown.up.prevent="nudgeTimeline(-8)"
       />
-      <div class="content-workspace" :style="contentStyle">
+      <div class="grid min-h-0 min-w-0 overflow-hidden" :class="contentClass">
         <EventTable
           :events="visibleEvents"
           :selected-id="selectedId"
           @select="selectEvent"
         />
         <div
-          class="resize-handle resize-handle-horizontal"
+          class="z-2 w-px cursor-col-resize bg-divider hover:bg-accent focus:bg-accent"
           role="separator"
           aria-label="Resize details panel width"
           tabindex="0"
@@ -113,47 +114,3 @@ function onOverviewSelect(item: AgentWorkOverviewItem): void {
     />
   </main>
 </template>
-
-<style scoped>
-.trace-app {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--panel-bg);
-}
-.trace-workspace {
-  display: grid;
-  min-height: 0;
-  flex: 1;
-}
-.resize-handle {
-  z-index: 2;
-  background: var(--divider);
-}
-.resize-handle:hover,
-.resize-handle:focus {
-  background: var(--accent);
-}
-.resize-handle-vertical {
-  height: 1px;
-  cursor: row-resize;
-}
-.resize-handle-horizontal {
-  width: 1px;
-  cursor: col-resize;
-}
-.content-workspace {
-  display: grid;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-.trace-workspace :deep(.agent-work-overview) {
-  min-height: 0;
-  max-height: 22.5rem;
-  border: 0;
-  border-radius: 0;
-}
-</style>

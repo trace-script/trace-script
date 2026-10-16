@@ -7,7 +7,7 @@ const emit = defineEmits<{ 'update:active': [tab: DetailTab] }>()
 
 <template>
   <nav
-    class="details-tabs"
+    class="flex h-auto shrink-0 gap-0 border-b border-divider bg-panel-surface"
     aria-label="Detail views"
     role="tablist"
   >
@@ -16,7 +16,7 @@ const emit = defineEmits<{ 'update:active': [tab: DetailTab] }>()
       :key="item"
       type="button"
       role="tab"
-      class="details-tab"
+      class="h-auto min-h-0 shrink-0 cursor-pointer whitespace-nowrap border-0 border-b-2 border-panel-surface bg-transparent px-4 py-2 text-sm font-semibold text-panel-muted hover:border-control-hover hover:bg-control-hover hover:text-panel-text aria-selected:border-accent aria-selected:text-accent"
       :aria-selected="active === item"
       @click="emit('update:active', item)"
     >
@@ -24,37 +24,3 @@ const emit = defineEmits<{ 'update:active': [tab: DetailTab] }>()
     </button>
   </nav>
 </template>
-
-<style scoped>
-.details-tabs {
-  display: flex;
-  height: auto;
-  flex-shrink: 0;
-  gap: 0;
-  border-bottom: 1px solid var(--divider);
-  background: var(--panel-surface);
-}
-.details-tab {
-  flex: 0 0 auto;
-  height: auto;
-  min-height: 0;
-  border: 0;
-  background: transparent;
-  padding: 8px 1rem;
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  border-bottom: 2px solid var(--panel-surface);
-}
-.details-tab:hover {
-  background: var(--control-hover);
-  color: var(--text);
-  border-bottom: 2px solid var(--control-hover);
-}
-.details-tab[aria-selected='true'] {
-  border-bottom: 2px solid var(--accent);
-  color: var(--accent);
-}
-</style>

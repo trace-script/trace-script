@@ -2,53 +2,24 @@
 import { formatDuration } from '@/utils/ui-model'
 
 defineProps<{ connected: boolean, eventCount: number, visibleCount: number, totalTokens: number, visibleTokens: number, failedCount: number, maxDuration: number, totalDuration: number }>()
+
+const statusItemClass = 'inline-flex items-center gap-1 whitespace-nowrap border-r border-divider px-2.5'
 </script>
 
 <template>
-  <footer class="trace-status-bar py-1" aria-label="Trace summary">
-    <span class="status-item primary">
-      <i class="status-dot" :class="connected ? 'status-success' : 'status-failed'" />
+  <footer class="flex items-center border-t border-divider bg-panel-raised py-1 text-sm text-panel-muted" aria-label="Trace summary">
+    <span class="gap-0 text-panel-text" :class="statusItemClass">
+      <i class="mr-2 block size-2 rounded-full" :class="connected ? 'bg-success' : 'bg-danger'" />
       {{ connected ? 'Connected' : 'Disconnected' }}
     </span>
-    <span class="status-item"><strong>{{ eventCount }}</strong> events</span>
-    <span class="status-item"><strong>{{ visibleCount }}</strong> visible</span>
-    <span class="status-item"><strong>{{ totalTokens }}</strong> tokens</span>
-    <span class="status-item"><strong>{{ visibleTokens }}</strong> visible tokens</span>
-    <span class="status-item" :class="failedCount ? 'status-failed' : ''"><strong>{{ failedCount }}</strong> failed</span>
-    <span class="status-item">Max duration: <strong>{{ formatDuration(maxDuration) }}</strong></span>
-    <span class="status-item">Total duration: <strong>{{ formatDuration(totalDuration) }}</strong></span>
-    <span class="status-spacer" />
-    <span class="status-item hint">↑↓ Navigate</span>
+    <span :class="statusItemClass"><strong>{{ eventCount }}</strong> events</span>
+    <span :class="statusItemClass"><strong>{{ visibleCount }}</strong> visible</span>
+    <span :class="statusItemClass"><strong>{{ totalTokens }}</strong> tokens</span>
+    <span :class="statusItemClass"><strong>{{ visibleTokens }}</strong> visible tokens</span>
+    <span :class="[statusItemClass, failedCount ? 'text-danger' : '']"><strong>{{ failedCount }}</strong> failed</span>
+    <span :class="statusItemClass">Max duration: <strong>{{ formatDuration(maxDuration) }}</strong></span>
+    <span :class="statusItemClass">Total duration: <strong>{{ formatDuration(totalDuration) }}</strong></span>
+    <span class="flex-1" />
+    <span class="inline-flex items-center gap-1 whitespace-nowrap px-2.5 text-[#70757a]">↑↓ Navigate</span>
   </footer>
 </template>
-
-<style scoped>
-.trace-status-bar {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  font-size: 0.875rem;
-  border-top: 1px solid var(--divider);
-  background: var(--panel-raised);
-  color: var(--text-muted);
-}
-.status-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  border-right: 1px solid var(--divider);
-  padding: 0 0.625rem;
-  white-space: nowrap;
-}
-.status-item.primary {
-  gap: 0;
-  color: var(--text);
-}
-.status-spacer {
-  flex: 1;
-}
-.status-item.hint {
-  border: 0;
-  color: #70757a;
-}
-</style>

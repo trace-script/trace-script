@@ -1,17 +1,9 @@
 {
-  "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": [
-    "@trace-script/tsconfig/base.json"
-  ],
+  "extends": "./.nuxt/tsconfig.json",
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    "paths": {
-      "@/*": ["./src/*"]
-    },
     "types": [
       "chrome",
       "node"
     ]
-  },
-  "include": ["env.d.ts", "src", "tests", "scripts"]
+  }
 }

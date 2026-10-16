@@ -8,6 +8,7 @@ import { EXTENSION_MESSAGE_TYPE, EXTENSION_PORT_NAME } from '@/messages'
 import { eventAgent, eventDuration, eventName, eventStatus, eventTimestamp, eventTokens, TRACE_FILTER_VALUE, TRACE_STATUS } from '@/utils/ui-model'
 
 const TIMELINE_FALLBACK_HEIGHT = 140
+const RESIZE_STEP = 4
 
 interface TracePanelState {
   events: Ref<TraceEventEnvelope[]>
@@ -27,8 +28,8 @@ interface TracePanelState {
   totalDuration: ComputedRef<number>
   timelineHeight: Ref<number>
   detailsWidth: Ref<number>
-  workspaceStyle: ComputedRef<{ gridTemplateRows: string }>
-  contentStyle: ComputedRef<{ gridTemplateColumns: string }>
+  workspaceClass: ComputedRef<string>
+  contentClass: ComputedRef<string>
   toggleRecording: () => boolean
   handleMessage: (message: WorkerToPanelMessage) => void
   selectEvent: (id: string) => void
@@ -143,11 +144,10 @@ export function useTracePanel(): TracePanelState {
       return sum + duration
     }, 0)
   })
-  const workspaceStyle = computed(() => {
-    const timelineRows = timelineHeight.value > 0 ? `${timelineHeight.value}px` : 'auto'
-    return { gridTemplateRows: `${timelineRows} 1px minmax(0, 1fr)` }
-  })
-  const contentStyle = computed(() => ({ gridTemplateColumns: `minmax(0, 1fr) 1px ${detailsWidth.value}px` }))
+  const workspaceClass = computed(() => timelineHeight.value > 0
+    ? `timeline-layout-${timelineHeight.value}`
+    : 'timeline-layout-auto')
+  const contentClass = computed(() => `details-layout-${detailsWidth.value}`)
   function handleMessage(message: WorkerToPanelMessage): void {
     if (message.type === EXTENSION_MESSAGE_TYPE.TRACE_QUERY_RESULT) {
       events.value = [...message.events]
@@ -205,12 +205,12 @@ export function useTracePanel(): TracePanelState {
     if (dragging.value === 'timeline') {
       const delta = event.clientY - dragOrigin
       const requestedHeight = dragSize + delta
-      timelineHeight.value = Math.min(360, Math.max(80, requestedHeight))
+      timelineHeight.value = snapResize(requestedHeight, 80, 360)
     }
     else {
       const delta = dragOrigin - event.clientX
       const requestedWidth = dragSize + delta
-      detailsWidth.value = Math.min(520, Math.max(260, requestedWidth))
+      detailsWidth.value = snapResize(requestedWidth, 260, 520)
     }
   }
   function stopResize(): void {
@@ -220,7 +220,7 @@ export function useTracePanel(): TracePanelState {
   function nudgeTimeline(delta: number): void {
     const autoHeight = (document.querySelector('.agent-work-overview') as HTMLElement | null)?.offsetHeight ?? TIMELINE_FALLBACK_HEIGHT
     const current = timelineHeight.value > 0 ? timelineHeight.value : autoHeight
-    timelineHeight.value = Math.min(360, Math.max(80, current + delta))
+    timelineHeight.value = snapResize(current + delta, 80, 360)
   }
   function keyboard(event: KeyboardEvent): void {
     const index = visibleEvents.value.findIndex(item => item.eventId === selectedId.value)
@@ -277,8 +277,8 @@ export function useTracePanel(): TracePanelState {
     totalDuration,
     timelineHeight,
     detailsWidth,
-    workspaceStyle,
-    contentStyle,
+    workspaceClass,
+    contentClass,
     toggleRecording,
     handleMessage,
     selectEvent,
@@ -287,4 +287,9 @@ export function useTracePanel(): TracePanelState {
     startResize,
     nudgeTimeline,
   }
+}
+
+function snapResize(value: number, minimum: number, maximum: number): number {
+  const steppedValue = Math.round(value / RESIZE_STEP) * RESIZE_STEP
+  return Math.min(maximum, Math.max(minimum, steppedValue))
 }

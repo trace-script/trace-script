@@ -7,37 +7,19 @@ const emit = defineEmits<{ select: [id: string] }>()
 </script>
 
 <template>
-  <p class="details-section-label">
+  <p class="mb-2 font-semibold text-panel-muted">
     Trace and event links
   </p>
   <button
     v-for="item in related"
     :key="item.eventId"
     type="button"
-    class="details-relation"
+    class="mb-2 block w-full rounded-[0.1875rem] border border-control-border bg-control-bg px-3 py-2.5 text-left text-panel-text hover:border-accent hover:bg-control-hover"
     @click="emit('select', item.eventId)"
   >
     {{ eventName(item) }} · #{{ item.sequence }}
   </button>
-  <p v-if="!related.length" class="empty-state">
+  <p v-if="!related.length" class="m-auto grid min-h-20 place-items-center text-center text-panel-muted">
     No related events
   </p>
 </template>
-
-<style scoped>
-.details-relation {
-  display: block;
-  width: 100%;
-  margin-bottom: 0.5rem;
-  border: 1px solid var(--control-border);
-  border-radius: 0.1875rem;
-  background: var(--control-bg);
-  padding: 0.625rem 0.75rem;
-  color: var(--text);
-  text-align: left;
-}
-.details-relation:hover {
-  border-color: var(--accent);
-  background: var(--control-hover);
-}
-</style>

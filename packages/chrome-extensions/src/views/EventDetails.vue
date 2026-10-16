@@ -28,10 +28,10 @@ const related = computed(() => {
 </script>
 
 <template>
-  <aside class="details-panel" aria-label="Event details">
+  <aside class="flex min-h-0 min-w-0 flex-col bg-panel-surface" aria-label="Event details">
     <template v-if="event">
       <Detail v-model:active="tab" :tabs="tabs" />
-      <div class="details-content min-h-0 flex-1 overflow-auto">
+      <div class="min-h-0 flex-1 overflow-auto p-2.5 text-sm [scrollbar-gutter:auto]">
         <Overview v-if="tab === 'Overview'" :event="event" />
         <Usage v-else-if="tab === 'Usage'" :event="event" />
         <Payload v-else-if="tab === 'Payload'" :payload="payload" />
@@ -44,24 +44,8 @@ const related = computed(() => {
         <Raw v-else :value="event" />
       </div>
     </template>
-    <p v-else class="empty-state">
+    <p v-else class="m-auto grid min-h-20 place-items-center text-center text-panel-muted">
       Select an event to inspect details
     </p>
   </aside>
 </template>
-
-<style scoped>
-.details-panel {
-  display: flex;
-  min-width: 0;
-  min-height: 0;
-  flex-direction: column;
-  background: var(--panel-surface);
-}
-.details-content {
-  min-height: 0;
-  padding: 0.625rem;
-  scrollbar-gutter: auto;
-  font-size: 0.875rem;
-}
-</style>

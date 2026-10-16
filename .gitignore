@@ -2,6 +2,8 @@
 .DS_Store
 .idea
 .turbo
+.nuxt
+.output
 *.log
 *.tgz
 coverage

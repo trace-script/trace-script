@@ -50,13 +50,13 @@ const statusOptions = [
 </script>
 
 <template>
-  <header class="trace-toolbar">
-    <div class="toolbar-main">
-      <aside>
+  <header class="min-h-12 border-b border-divider bg-panel-raised px-3 py-2">
+    <div class="flex min-w-0 items-center gap-2">
+      <aside class="flex items-center">
         <button
           type="button"
-          class="icon-button"
-          :class="recording ? 'is-live' : 'is-paused'"
+          class="inline-flex size-7 items-center justify-center rounded-[0.1875rem] border-0 bg-transparent p-0 text-panel-muted hover:bg-control-hover hover:text-panel-text [&_svg]:block [&_svg]:size-5"
+          :class="recording ? 'text-success' : 'text-danger'"
           :aria-label="recordingActionLabel"
           :title="recordingActionLabel"
           @click="emit('toggleRecording')"
@@ -65,7 +65,7 @@ const statusOptions = [
         </button>
         <button
           type="button"
-          class="icon-button"
+          class="inline-flex size-7 items-center justify-center rounded-[0.1875rem] border-0 bg-transparent p-0 text-panel-muted hover:bg-control-hover hover:text-panel-text [&_svg]:block [&_svg]:size-5"
           aria-label="Clear events"
           title="Clear events"
           @click="emit('clear')"
@@ -74,8 +74,8 @@ const statusOptions = [
         </button>
         <button
           type="button"
-          class="icon-button"
-          :class="filtersVisible ? 'is-active' : ''"
+          class="inline-flex size-7 items-center justify-center rounded-[0.1875rem] border-0 bg-transparent p-0 text-panel-muted hover:bg-control-hover hover:text-panel-text [&_svg]:block [&_svg]:size-5"
+          :class="filtersVisible ? 'bg-control-hover text-panel-text' : ''"
           :aria-pressed="filtersVisible"
           aria-label="Toggle filters"
           title="Toggle filters"
@@ -84,11 +84,11 @@ const statusOptions = [
           <Icon icon="mdi:filter-variant" aria-hidden="true" />
         </button>
       </aside>
-      <span class="toolbar-divider" />
-      <div v-show="filtersVisible" class="filter-bar">
+      <span class="h-6 border-l border-divider" />
+      <div v-show="filtersVisible" class="flex min-w-0 items-center gap-1.75">
         <input
           v-model="query"
-          class="trace-search"
+          class="h-7.5 w-50 rounded-[0.1875rem] border border-control-border bg-panel-bg px-2 py-1.5 leading-4"
           type="search"
           placeholder="Search name or ID…"
           aria-label="Search name or ID"
@@ -113,114 +113,20 @@ const statusOptions = [
         />
         <button
           type="button"
-          class="filter-button"
-          :class="onlyErrors ? 'is-error' : ''"
+          class="h-7 min-w-7 whitespace-nowrap rounded-[0.1875rem] border border-control-border bg-control-bg px-2 text-panel-muted hover:bg-control-hover hover:text-panel-text"
+          :class="onlyErrors ? 'border-danger text-danger' : ''"
           @click="emit('toggleErrors')"
         >
           Only errors
         </button>
       </div>
-      <span class="event-count">{{ visible }} of {{ total }}</span>
+      <span class="ml-auto whitespace-nowrap text-panel-muted">{{ visible }} of {{ total }}</span>
       <template v-if="preview">
         <ToolbarButton label="Add 10 events" @click="emit('add')">
           Add 10 events
         </ToolbarButton>
-        <span class="preview-badge">Preview</span>
+        <span class="rounded-full border border-cyan-700 px-3 py-1 text-xs text-cyan-300 uppercase">Preview</span>
       </template>
     </div>
   </header>
 </template>
-
-<style scoped>
-.trace-toolbar {
-  min-height: 3rem;
-  border-bottom: 1px solid var(--divider);
-  background: var(--panel-raised);
-  padding: 0.5rem 0.75rem;
-}
-.toolbar-main {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 0.5rem;
-}
-.preview-badge {
-  padding: 4px 0.75rem;
-  border: 1px solid #0e7490;
-  border-radius: 100rem;
-  color: #67e8f9;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-}
-.icon-button,
-.filter-button {
-  min-width: 1.75rem;
-  height: 1.75rem;
-  background: transparent;
-  color: var(--text-muted);
-}
-.icon-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  border-radius: 3px;
-}
-.icon-button svg {
-  display: block;
-  width: 1.25rem;
-  height: 1.25rem;
-}
-.icon-button:hover,
-.icon-button.is-active,
-.filter-button:hover {
-  border-color: var(--control-border);
-  background: var(--control-hover);
-  color: var(--text);
-}
-.icon-button:hover {
-  border-color: transparent;
-}
-.icon-button.is-live {
-  color: var(--success);
-}
-.icon-button.is-paused {
-  color: var(--danger);
-}
-.toolbar-divider {
-  height: 1.5rem;
-  border-left: 1px solid var(--divider);
-}
-.filter-bar {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 0.4375rem;
-}
-.trace-search {
-  width: 12.5rem;
-  height: 1.875rem;
-  border: 1px solid var(--control-border);
-  border-radius: 3px;
-  background: #202124;
-  padding: 0.375rem 0.5rem;
-  line-height: 1rem;
-}
-.filter-button {
-  border-color: var(--control-border);
-  background: var(--control-bg);
-  padding: 0 0.5rem;
-  white-space: nowrap;
-  border-radius: 3px;
-}
-.filter-button.is-error {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-.event-count {
-  margin-left: auto;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-</style>

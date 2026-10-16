@@ -1,4 +1,3 @@
-import type { Plugin } from 'vite'
 import { readFileSync } from 'node:fs'
 
 export interface ExtensionManifest {
@@ -23,19 +22,6 @@ export interface ExtensionManifest {
 export function getExtensionVersion(): string {
   const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version?: string }
   return packageJson.version ?? ''
-}
-
-export function mainfest(mode: string): Plugin {
-  return {
-    name: 'trace-script-extension-manifest',
-    generateBundle() {
-      this.emitFile({
-        type: 'asset',
-        fileName: 'manifest.json',
-        source: `${JSON.stringify(createManifest(mode), null, 2)}\n`,
-      })
-    },
-  }
 }
 
 function isValidVersionStr(version: string): string | undefined {

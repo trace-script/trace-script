@@ -12,25 +12,13 @@ withDefaults(defineProps<{
 <template>
   <button
     type="button"
-    class="toolbar-button"
-    :class="[{ 'toolbar-button-active': active }, `toolbar-button-${tone}`]"
+    class="h-7 whitespace-nowrap rounded-[0.1875rem] border border-control-border bg-control-bg px-2.25 hover:bg-control-hover"
+    :class="[
+      active ? 'bg-control-hover' : '',
+      tone === 'danger' ? 'border-danger text-danger' : '',
+    ]"
     :aria-label="label"
   >
     <slot>{{ label }}</slot>
   </button>
 </template>
-
-<style scoped>
-.toolbar-button {
-  height: 1.75rem;
-  border: 1px solid var(--control-border);
-  border-radius: 0.1875rem;
-  background: var(--control-bg);
-  padding: 0 0.5625rem;
-  white-space: nowrap;
-}
-.toolbar-button:hover,
-.toolbar-button-active {
-  background: var(--control-hover);
-}
-</style>
