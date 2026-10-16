@@ -4,18 +4,19 @@ import { externalizeNuxtPage, resolveEntryAlias } from '../scripts/extension-pag
 describe('extension panel page', () => {
   it('externalizes executable Nuxt scripts for the extension CSP', () => {
     const source = [
-      '<script type="importmap">{"imports":{"#entry":"/_nuxt/entry.js"}}</script>',
-      '<script type="module" src="/_nuxt/entry.js"></script>',
+      '<script type="importmap">{"imports":{"#entry":"/assets/entry.js"}}</script>',
+      '<script type="module" src="/assets/entry.js"></script>',
       '<script>window.__NUXT__={};window.__NUXT__.config={}</script>',
       '<script type="application/json">[]</script>',
     ].join('')
 
     expect(externalizeNuxtPage(source)).toEqual({
       html: [
-        '<script type="module" src="/_nuxt/entry.js"></script>',
-        '<script src="/_nuxt/nuxt-config.js"></script>',
+        '<script type="module" src="/assets/entry.js"></script>',
+        '<script src="/assets/nuxt-config.js"></script>',
         '<script type="application/json">[]</script>',
       ].join(''),
+      assetDirectory: 'assets',
       entryFile: 'entry.js',
       runtimeConfig: 'window.__NUXT__={};window.__NUXT__.config={}\n',
     })

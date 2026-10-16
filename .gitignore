@@ -18,3 +18,4 @@ dist-dev
 .artifacts
 test-results
 playwright-report
+.workbuddy-ai

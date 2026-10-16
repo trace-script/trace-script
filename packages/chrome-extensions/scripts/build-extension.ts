@@ -10,16 +10,11 @@ const packageDirectory = fileURLToPath(new URL('..', import.meta.url))
 const sourceDirectory = join(packageDirectory, 'src')
 const development = process.argv.includes('--development')
 const mode = development ? 'development' : 'production'
-const outputDirectoryName = development ? 'dist-dev' : 'dist'
-const outputDirectory = join(packageDirectory, outputDirectoryName)
+const outputDirectory = join(packageDirectory, 'dist')
 
 await rm(outputDirectory, { recursive: true, force: true })
 execFileSync('nuxt', ['generate'], {
   cwd: packageDirectory,
-  env: {
-    ...process.env,
-    EXTENSION_OUTPUT_DIRECTORY: outputDirectoryName,
-  },
   stdio: 'inherit',
 })
 
@@ -33,9 +28,9 @@ await Promise.all([
 
 const panelAssets = externalizeNuxtPage(await readFile(panelPage, 'utf8'))
 await writeFile(panelPage, panelAssets.html)
-await writeFile(join(outputDirectory, '_nuxt/nuxt-config.js'), panelAssets.runtimeConfig)
+await writeFile(join(outputDirectory, panelAssets.assetDirectory, 'nuxt-config.js'), panelAssets.runtimeConfig)
 
-const assetDirectory = join(outputDirectory, '_nuxt')
+const assetDirectory = join(outputDirectory, panelAssets.assetDirectory)
 const assetFiles = await readdir(assetDirectory)
 await Promise.all(assetFiles
   .filter(file => file.endsWith('.js'))

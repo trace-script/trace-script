@@ -1,7 +1,5 @@
 import tailwindcss from '@tailwindcss/vite'
 
-const extensionOutputDirectory = process.env.EXTENSION_OUTPUT_DIRECTORY ?? 'dist'
-
 export default defineNuxtConfig({
   srcDir: 'src/',
   ssr: false,
@@ -9,14 +7,18 @@ export default defineNuxtConfig({
   devtools: {
     enabled: false,
   },
+
   eslint: {
     config: {
       autoInit: false,
       standalone: false,
     },
   },
+
   css: ['~/assets/panel.css'],
+
   app: {
+    buildAssetsDir: '/assets/',
     head: {
       title: 'Agent Trace · Live Preview',
       htmlAttrs: {
@@ -32,7 +34,7 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'static',
     output: {
-      publicDir: extensionOutputDirectory,
+      publicDir: 'dist',
     },
   },
   experimental: {

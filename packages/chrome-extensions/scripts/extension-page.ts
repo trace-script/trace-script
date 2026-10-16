@@ -1,13 +1,15 @@
 export interface ExtensionPageAssets {
   html: string
+  assetDirectory: string
   entryFile: string
   runtimeConfig: string
 }
 
 export function externalizeNuxtPage(html: string): ExtensionPageAssets {
-  const importMap = html.match(/<script type="importmap">\{"imports":\{"#entry":"\/_nuxt\/([^"]+)"\}\}<\/script>/)
-  const entryFile = importMap?.[1]
-  if (!importMap || !entryFile)
+  const importMap = html.match(/<script type="importmap">\{"imports":\{"#entry":"\/([^"]+)\/([^"/]+)"\}\}<\/script>/)
+  const assetDirectory = importMap?.[1]
+  const entryFile = importMap?.[2]
+  if (!importMap || !assetDirectory || !entryFile)
     throw new Error('Nuxt output did not contain the expected entry import map.')
 
   const runtimeScript = html.match(/<script>(window\.__NUXT__=.*?)<\/script>/)
@@ -18,7 +20,8 @@ export function externalizeNuxtPage(html: string): ExtensionPageAssets {
   return {
     html: html
       .replace(importMap[0], '')
-      .replace(runtimeScript[0], '<script src="/_nuxt/nuxt-config.js"></script>'),
+      .replace(runtimeScript[0], `<script src="/${assetDirectory}/nuxt-config.js"></script>`),
+    assetDirectory,
     entryFile,
     runtimeConfig: `${runtimeConfig}\n`,
   }
