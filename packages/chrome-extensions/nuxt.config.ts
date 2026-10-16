@@ -3,8 +3,15 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   srcDir: 'src/',
   ssr: false,
+  modules: ['@nuxt/eslint'],
   devtools: {
     enabled: false,
+  },
+  eslint: {
+    config: {
+      autoInit: false,
+      standalone: false,
+    },
   },
   css: ['~/assets/panel.css'],
   app: {

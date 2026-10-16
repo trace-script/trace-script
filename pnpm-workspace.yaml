@@ -16,6 +16,7 @@ overrides:
 allowBuilds:
   esbuild: true
   simple-git-hooks: true
+  unrs-resolver: true
 
 catalog:
   '@iconify/vue': ^5.0.3
@@ -42,6 +43,7 @@ catalogs:
     vue-tsc: ^3.3.12
   lint:
     '@antfu/eslint-config': ^9.5.1
+    '@nuxt/eslint': ^1.17.0
     eslint: ^10.11.0
     eslint-factory: ^0.1.2
     eslint-plugin-format: ^2.0.1

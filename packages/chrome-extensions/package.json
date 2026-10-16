@@ -26,6 +26,7 @@
     "build": "nuxt generate && tsx scripts/build-extension.ts",
     "dev": "nuxt dev",
     "dev:extension": "nuxt generate && tsx scripts/build-extension.ts --development",
+    "postinstall": "nuxt prepare",
     "test": "vitest",
     "typecheck": "nuxt typecheck"
   },
@@ -38,6 +39,7 @@
     "vue": "catalog:ui"
   },
   "devDependencies": {
+    "@nuxt/eslint": "catalog:lint",
     "@tailwindcss/vite": "catalog:build",
     "@trace-script/metadata": "workspace:*",
     "@types/chrome": "catalog:types",

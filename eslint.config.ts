@@ -1,7 +1,8 @@
 import antfu from '@antfu/eslint-config'
 import rules from '@trace-script/eslint-rules'
+import withNuxt from './packages/chrome-extensions/.nuxt/eslint.config.mjs'
 
-export default antfu({
+export default withNuxt(antfu({
   ignores: ['packages/eslint-rules/tests/fixtures/**'],
   type: 'lib',
   pnpm: true,
@@ -26,4 +27,4 @@ export default antfu({
     'antfu/top-level-function': 'off',
     'regexp/no-unused-capturing-group': 'off',
   },
-}, ...rules)
+}, ...rules))
