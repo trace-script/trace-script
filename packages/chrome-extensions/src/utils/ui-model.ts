@@ -15,21 +15,42 @@ export const TRACE_STATUS = {
 } as const
 
 export function matchesCall(call: CallRecord, filter: TracePanelFilter, trace?: TraceSummary): boolean {
-  const haystack = `${call.name} ${call.traceId} ${call.callId} ${call.agent} ${call.events.map(event => event.eventId).join(' ')}`.toLowerCase()
-  return (!filter.query || haystack.includes(filter.query.toLowerCase()))
-    && (filter.type === 'all' || call.kind === filter.type)
-    && (filter.status === 'all' || call.status === filter.status || (filter.status === 'conflict' && (call.associationConflict || trace?.status === 'conflict')))
-    && (filter.agent === 'all' || call.agent === filter.agent)
-    && (!filter.onlyErrors || call.status === 'failed' || call.associationConflict || trace?.status === 'failed' || trace?.status === 'conflict')
+  const searchableText = [
+    call.name,
+    call.traceId,
+    call.callId,
+    call.agent,
+    call.events.map(event => event.eventId).join(' '),
+  ].join(' ').toLowerCase()
+  const hasConflict = call.associationConflict || trace?.status === TRACE_STATUS.CONFLICT
+  const hasError = call.status === TRACE_STATUS.FAILED || trace?.status === TRACE_STATUS.FAILED || hasConflict
+
+  const matchesQuery = !filter.query || searchableText.includes(filter.query.toLowerCase())
+  const matchesType = filter.type === TRACE_FILTER_VALUE.ALL || call.kind === filter.type
+  const matchesStatus = filter.status === TRACE_FILTER_VALUE.ALL
+    || call.status === filter.status
+    || (filter.status === TRACE_STATUS.CONFLICT && hasConflict)
+  const matchesAgent = filter.agent === TRACE_FILTER_VALUE.ALL || call.agent === filter.agent
+  const matchesErrorFilter = !filter.onlyErrors || hasError
+
+  return matchesQuery && matchesType && matchesStatus && matchesAgent && matchesErrorFilter
 }
 
 export function matchesTrace(trace: TraceSummary, filter: TracePanelFilter): boolean {
-  const haystack = `${trace.traceId} ${trace.errors.join(' ')} ${trace.events.map(event => event.eventId).join(' ')}`.toLowerCase()
-  return (!filter.query || haystack.includes(filter.query.toLowerCase()))
-    && filter.type === 'all'
-    && filter.agent === 'all'
-    && (filter.status === 'all' || trace.status === filter.status)
-    && (!filter.onlyErrors || trace.status === 'failed' || trace.status === 'conflict')
+  const searchableText = [
+    trace.traceId,
+    trace.errors.join(' '),
+    trace.events.map(event => event.eventId).join(' '),
+  ].join(' ').toLowerCase()
+  const hasError = trace.status === TRACE_STATUS.FAILED || trace.status === TRACE_STATUS.CONFLICT
+
+  const matchesQuery = !filter.query || searchableText.includes(filter.query.toLowerCase())
+  const matchesType = filter.type === TRACE_FILTER_VALUE.ALL
+  const matchesStatus = filter.status === TRACE_FILTER_VALUE.ALL || trace.status === filter.status
+  const matchesAgent = filter.agent === TRACE_FILTER_VALUE.ALL
+  const matchesErrorFilter = !filter.onlyErrors || hasError
+
+  return matchesQuery && matchesType && matchesStatus && matchesAgent && matchesErrorFilter
 }
 
 export function formatDuration(value: number): string {
