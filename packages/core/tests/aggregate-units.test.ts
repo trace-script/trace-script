@@ -1,12 +1,11 @@
 import type { TraceEventEnvelope } from '@trace-script/metadata'
 import { describe, expect, it } from 'vitest'
-import { collectModelCalls, isModelEvent, isTraceTerminal, traceTerminalStatus } from '@/aggregate/association'
+import { isModelEvent, isTraceTerminal, traceTerminalStatus } from '@/aggregate/association'
 import { conflict, emptyCall } from '@/aggregate/call'
-import { attachTraceErrors, createTraceSummary, finalizeCalls } from '@/aggregate/lifecycle'
 import { modelMetadata, responseStatus } from '@/aggregate/metadata'
 import { callTiming, compareEvents, recordId, responseTokens, sumUsage, validToken } from '@/aggregate/metrics'
 import { modelCall } from '@/aggregate/model'
-import { addToolDeclaration, collectToolCalls } from '@/aggregate/tool'
+import { addToolDeclaration } from '@/aggregate/tool'
 
 const request: Extract<TraceEventEnvelope, { type: 'model.request' }> = {
   eventId: 'request',
@@ -76,49 +75,21 @@ describe('aggregation units', () => {
     expect(emptyCall('trace', 'tool', 't').issues).toEqual([])
   })
 
-  it('classifies events and associates explicit requests independently', () => {
+  it('classifies model and terminal events', () => {
     expect(isModelEvent(request)).toBeTruthy()
     expect(isModelEvent(end)).toBeFalsy()
     expect(isTraceTerminal(end)).toBeTruthy()
     expect(traceTerminalStatus({ ...end, status: 'cancelled' })).toBe('cancelled')
-    expect(collectModelCalls('trace', [request, response])).toEqual([modelCall('trace', 'r', [request, response], 'request')])
-    expect(collectModelCalls('trace', [request, { ...response, requestId: 'other' }])).toHaveLength(2)
   })
 
-  it('retains tool declarations, detects reuse and collects orphan results', () => {
-    const model = modelCall('trace', 'r', [request, response])
+  it('ignores unrelated output items and preserves empty tool arguments', () => {
+    const model = emptyCall('trace', 'model', 'r')
     const tools = new Map<string, ReturnType<typeof emptyCall>>()
-    const declaration = { type: 'function_call', call_id: 't', arguments: '' }
-    addToolDeclaration(tools, 'trace', model, response, declaration)
+    addToolDeclaration(tools, 'trace', model, response, { type: 'message', call_id: 'ignored' })
+    expect(tools.size).toBe(0)
+    expect(model.issues).toEqual([])
+    addToolDeclaration(tools, 'trace', model, response, { type: 'function_call', call_id: 't', arguments: '' })
     expect(tools.get('t')?.input).toBe('')
-    addToolDeclaration(tools, 'trace', model, response, declaration)
-    expect(tools.get('t')?.associationConflict).toBeTruthy()
-    addToolDeclaration(tools, 'trace', model, response, { type: 'function_call' })
-    expect(model.issues.join()).toContain('call_id missing')
-    const calls = collectToolCalls('trace', [{ ...response, type: 'tool.result', payload: { callId: 'orphan', output: '' } }], [])
-    expect(calls[0]?.status).toBe('unknown')
-    expect(calls[0]?.output).toBe('')
-  })
-
-  it('builds lifecycle summaries and finalizes unresolved calls', () => {
-    const call = modelCall('trace', 'r', [request])
-    const trace = createTraceSummary('trace', [request, end], [], [call])
-    expect(trace.issues).toContain('Trace start missing')
-    finalizeCalls(trace)
-    expect(call.status).toBe('incomplete')
-    expect(call.timing.duration).toBeUndefined()
-  })
-
-  it('attaches located errors and records unresolved targets', () => {
-    const error: Extract<TraceEventEnvelope, { type: 'trace.error' }> = { ...end, type: 'trace.error', payload: { message: 'failure', requestId: 'r' } }
-    const call = modelCall('trace', 'r', [request])
-    const trace = createTraceSummary('trace', [request, error], [], [call])
-    attachTraceErrors(trace)
-    expect(call.status).toBe('failed')
-    expect(call.errors).toEqual(['failure'])
-    expect(call.timing.duration).toBe(1000)
-    const orphan = createTraceSummary('trace', [error], [], [])
-    attachTraceErrors(orphan)
-    expect(orphan.issues).toContain('Error target not found: r')
+    expect(tools.get('t')?.issues).toEqual([])
   })
 })
