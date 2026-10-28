@@ -26,9 +26,16 @@ describe('call timeline projection', () => {
     }
     const sources = previewEvents.slice(0, 3)
     const items = toOverviewItems(aggregateEvents([...sources, orphan]).flatMap(trace => trace.calls))
-    expect(items.find(item => item.status === 'waiting')).toMatchObject({ group: 'tool', durationLabel: 'Return interval: —' })
+    expect(items.find(item => item.status === 'waiting')).toMatchObject({
+      group: 'tool',
+      durationLabel: 'Return interval: —',
+    })
     expect(items.find(item => item.status === 'waiting')?.duration).toBeUndefined()
-    expect(items.find(item => item.status === 'unknown')).toMatchObject({ group: 'model', durationLabel: 'Duration: —', startTime: Date.parse(orphan.timestamp) })
+    expect(items.find(item => item.status === 'unknown')).toMatchObject({
+      group: 'model',
+      durationLabel: 'Duration: —',
+      startTime: Date.parse(orphan.timestamp),
+    })
     expect(items.find(item => item.status === 'unknown')?.duration).toBeUndefined()
   })
 })

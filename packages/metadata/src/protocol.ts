@@ -21,11 +21,7 @@ export const TRACE_EVENT_TYPES = [
 ] as const
 
 const identifierSchema = z.string().min(1).max(200)
-// Keep timestamp parsing compatible with Zod 3 runtimes while using Zod 4's
-// JSON schema for request and response payloads.
-const timestampSchema = z.iso?.datetime
-  ? z.iso.datetime({ offset: false })
-  : z.string().datetime({ offset: false })
+const timestampSchema = z.iso.datetime({ offset: false })
 const eventFields = {
   eventId: identifierSchema,
   traceId: identifierSchema,

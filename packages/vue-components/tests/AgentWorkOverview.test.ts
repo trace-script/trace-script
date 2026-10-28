@@ -11,10 +11,18 @@ const items = [
 
 const frames = new Map<number, FrameRequestCallback>()
 const observers: TestResizeObserver[] = []
+let clock = 0
 
 class TestResizeObserver implements ResizeObserver {
-  readonly observe = vi.fn()
+  target: Element = document.createElement('div')
+
+  readonly observe = vi.fn((target: Element) => {
+    this.target = target
+    this.resize()
+  })
+
   readonly unobserve = vi.fn()
+
   readonly disconnect = vi.fn()
 
   constructor(readonly callback: ResizeObserverCallback) {
@@ -22,11 +30,13 @@ class TestResizeObserver implements ResizeObserver {
   }
 
   resize(): void {
-    this.callback([], this)
+    const element = this.target as HTMLElement
+    this.callback([{ contentRect: { width: element.clientWidth, height: element.clientHeight } } as ResizeObserverEntry], this)
   }
 }
 
 function advanceFrame(timestamp: number): void {
+  clock = timestamp
   const callbacks = [...frames.values()]
   frames.clear()
   for (const callback of callbacks)
@@ -47,9 +57,11 @@ describe('agent work overview', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks()
+    clock = 0
     frames.clear()
     observers.length = 0
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(640)
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(640)
     vi.stubGlobal('ResizeObserver', TestResizeObserver)
     let frameId = 0
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
@@ -59,6 +71,7 @@ describe('agent work overview', () => {
     vi.stubGlobal('cancelAnimationFrame', (id: number) => {
       frames.delete(id)
     })
+    vi.spyOn(Date, 'now').mockImplementation(() => clock)
   })
 
   afterEach(() => {
@@ -116,7 +129,7 @@ describe('agent work overview', () => {
     await wrapper.setProps({ items })
     const viewport = wrapper.find('.agent-work-overview__events').element
     const observer = observers.at(-1)!
-    expect(observer.observe).toHaveBeenCalledWith(viewport, {})
+    expect(observer.observe).toHaveBeenCalledWith(viewport, { box: 'border-box' })
     expect(wrapper.find('canvas').attributes('width')).toBe('640')
 
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(480)
@@ -128,7 +141,7 @@ describe('agent work overview', () => {
     expect(observer.disconnect).toHaveBeenCalledOnce()
     await wrapper.setProps({ items })
     const replacement = observers.at(-1)!
-    expect(replacement.observe).toHaveBeenCalledWith(wrapper.find('.agent-work-overview__events').element, {})
+    expect(replacement.observe).toHaveBeenCalledWith(wrapper.find('.agent-work-overview__events').element, { box: 'border-box' })
     wrapper.unmount()
     expect(replacement.disconnect).toHaveBeenCalledOnce()
     expect(frames.size).toBe(0)
@@ -149,7 +162,6 @@ describe('agent work overview', () => {
   })
 
   it('animates range zoom for 240 ms and keeps scrolling aligned with the ruler', async () => {
-    vi.spyOn(performance, 'now').mockReturnValue(0)
     const wrapper = mount(AgentWorkOverview, { props: { items } })
     await nextTick()
     const canvas = wrapper.find('canvas')

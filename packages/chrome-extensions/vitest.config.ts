@@ -17,7 +17,7 @@ export default defineConfig({
         test: {
           name: 'chrome-extensions-node',
           include: ['tests/**/*.test.ts'],
-          exclude: ['tests/trace-panel.test.ts'],
+          exclude: ['tests/**/*.browser.test.ts'],
           environment: 'node',
         },
       },
@@ -25,7 +25,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'chrome-extensions-dom',
-          include: ['tests/trace-panel.test.ts'],
+          include: ['tests/**/*.browser.test.ts'],
           environment: 'happy-dom',
         },
       },
