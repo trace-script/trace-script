@@ -1,36 +1,49 @@
 <script setup lang="ts">
-import type { TraceEventEnvelope } from '@trace-script/metadata'
-import { eventDuration, formatDuration } from '@/utils/ui-model'
+import type { TraceRecord } from '@trace-script/core'
+import { isUndefined } from '@trace-script/shared'
+import { computed } from 'vue'
+import { timingText } from '@/utils/ui-model'
 
-const props = defineProps<{ event: TraceEventEnvelope }>()
-
-const fields = [
-  { label: 'Duration', value: (event: TraceEventEnvelope) => formatDuration(eventDuration(event)) },
-  { label: 'Started', value: (event: TraceEventEnvelope) => event.timestamp },
-  {
-    label: 'Ended',
-    value: (event: TraceEventEnvelope) => {
-      const duration = eventDuration(event)
-      if (!duration)
-        return '—'
-
-      const startTimestamp = Date.parse(event.timestamp)
-      const endTimestamp = startTimestamp + duration
-      return new Date(endTimestamp).toISOString()
+const props = defineProps<{ record: TraceRecord }>()
+const fields = computed(() => {
+  const record = props.record
+  return [
+    { label: 'Start', value: record.timing.start ?? '— (input / start missing)' },
+    { label: 'Completion', value: record.timing.end ?? '— (completion missing)' },
+    {
+      label: record.kind === 'tool' ? 'Return interval' : 'Duration',
+      value: timingText(record.timing, record.kind === 'trace' && record.status === 'running'),
     },
-  },
-] as const
+  ]
+})
 </script>
 
 <template>
-  <dl class="mb-5 grid grid-cols-[6.875rem_minmax(0,1fr)] gap-x-4">
-    <template v-for="field in fields" :key="field.label">
-      <dt class="flex min-h-7 items-center p-0 text-sm leading-3.5 font-semibold text-panel-muted">
-        {{ field.label }}
-      </dt>
-      <dd class="flex min-h-7 min-w-0 items-center p-0 text-sm leading-3.5 text-panel-text [overflow-wrap:anywhere]">
-        {{ field.value(props.event) }}
-      </dd>
-    </template>
-  </dl>
+  <div>
+    <dl class="details-fields">
+      <template v-for="field in fields" :key="field.label">
+        <dt class="details-field-label">
+          {{ field.label }}
+        </dt>
+        <dd class="details-field-value">
+          {{ field.value }}
+        </dd>
+      </template>
+    </dl>
+    <p v-if="record.timing.anomalous" class="status-incomplete">
+      Time anomaly: completion precedes start. Original timestamps are preserved; no negative duration is shown.
+    </p>
+    <p v-if="record.kind === 'model'">
+      Observed interval from recording the request to the final response (or a located failure). This is not server processing time.
+    </p>
+    <p v-else-if="record.kind === 'tool'">
+      Return interval from the model's tool declaration to the result (or a located failure). Includes waiting, scheduling and execution; it is not measured tool execution time.
+    </p>
+    <p v-else>
+      Trace interval from start to end or error, including parallel work and waits. Call durations are never summed to replace this interval.
+    </p>
+    <p v-if="isUndefined(record.timing.duration) && !record.timing.anomalous">
+      Both endpoints are required for a final interval. Waiting calls do not have a final duration of zero.
+    </p>
+  </div>
 </template>

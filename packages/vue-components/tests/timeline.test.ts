@@ -28,6 +28,25 @@ describe('agent work overview timeline', () => {
     expect(layout.rows.find(row => row.item.id === 'invalid')?.duration).toBe(0)
   })
 
+  it('marks both overlapping intervals but leaves touching intervals unmarked', () => {
+    const layout = createAgentWorkOverviewLayout([
+      { ...items[0]!, id: 'first', startTime: 0, duration: 100 },
+      { ...items[0]!, id: 'overlapping', startTime: 50, duration: 50 },
+      { ...items[0]!, id: 'touching', startTime: 100, duration: 20 },
+    ])
+    expect(layout.rows.map(row => [row.item.id, row.overlapCount])).toEqual([
+      ['first', 1],
+      ['overlapping', 1],
+      ['touching', 0],
+    ])
+  })
+
+  it('keeps empty layouts safe for rendering and hit testing', () => {
+    const layout = createAgentWorkOverviewLayout([])
+    expect(layout).toEqual({ duration: 1, groups: [], rows: [] })
+    expect(findAgentWorkOverviewItem(layout, 0, 0, 600, 32, 3)).toBeFalsy()
+  })
+
   it('finds visible bars including zero-duration work', () => {
     const layout = createAgentWorkOverviewLayout(items)
 

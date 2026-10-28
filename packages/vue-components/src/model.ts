@@ -3,6 +3,10 @@ export const AGENT_WORK_STATUS = {
   FAILED: 'failed',
   RUNNING: 'running',
   SUCCESS: 'success',
+  WAITING: 'waiting',
+  INCOMPLETE: 'incomplete',
+  INTERRUPTED: 'interrupted',
+  UNKNOWN: 'unknown',
 } as const
 
 export type AgentWorkStatus = typeof AGENT_WORK_STATUS[keyof typeof AGENT_WORK_STATUS]
@@ -12,7 +16,8 @@ export interface AgentWorkOverviewItem {
   name: string
   group: string
   startTime: number
-  duration: number
+  duration?: number
+  durationLabel?: string
   status: AgentWorkStatus
 }
 

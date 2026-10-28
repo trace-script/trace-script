@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import type { TraceEventEnvelope } from '@trace-script/metadata'
+import type { EventTypeFilter, StatusFilter } from '@/types/trace-panel'
 import { Icon } from '@iconify/vue'
-import { TRACE_EVENT_TYPE } from '@trace-script/metadata'
 import { computed } from 'vue'
 import FilterSelect from '@/components/FilterSelect.vue'
 import ToolbarButton from '@/components/ToolbarButton.vue'
@@ -25,28 +24,13 @@ const emit = defineEmits<{
   toggleErrors: []
 }>()
 const query = defineModel<string>('query', { required: true })
-const type = defineModel<typeof TRACE_FILTER_VALUE.ALL | TraceEventEnvelope['type']>('type', { required: true })
-const status = defineModel<typeof TRACE_FILTER_VALUE.ALL | typeof TRACE_STATUS[keyof typeof TRACE_STATUS]>('status', { required: true })
+const type = defineModel<EventTypeFilter>('type', { required: true })
+const status = defineModel<StatusFilter>('status', { required: true })
 const agent = defineModel<string>('agent', { required: true })
 const recordingActionLabel = computed(() => props.recording ? 'Pause live updates' : 'Resume live updates')
 
-const typeOptions = [
-  TRACE_FILTER_VALUE.ALL,
-  TRACE_EVENT_TYPE.TRACE_START,
-  TRACE_EVENT_TYPE.MODEL_REQUEST,
-  TRACE_EVENT_TYPE.MODEL_RESPONSE,
-  TRACE_EVENT_TYPE.TOOL_RESULT,
-  TRACE_EVENT_TYPE.TRACE_END,
-  TRACE_EVENT_TYPE.TRACE_ERROR,
-] as const
-
-const statusOptions = [
-  TRACE_FILTER_VALUE.ALL,
-  TRACE_STATUS.SUCCESS,
-  TRACE_STATUS.RUNNING,
-  TRACE_STATUS.FAILED,
-  TRACE_STATUS.CANCELLED,
-] as const
+const typeOptions = [TRACE_FILTER_VALUE.ALL, 'model', 'tool'] as const
+const statusOptions = [TRACE_FILTER_VALUE.ALL, ...Object.values(TRACE_STATUS)]
 </script>
 
 <template>
@@ -66,8 +50,8 @@ const statusOptions = [
         <button
           type="button"
           class="inline-flex size-7 items-center justify-center rounded-[0.1875rem] border-0 bg-transparent p-0 text-panel-muted hover:bg-control-hover hover:text-panel-text [&_svg]:block [&_svg]:size-5"
-          aria-label="Clear events"
-          title="Clear events"
+          aria-label="Clear traces"
+          title="Clear traces"
           @click="emit('clear')"
         >
           <Icon icon="mdi:delete-outline" aria-hidden="true" />
@@ -120,10 +104,10 @@ const statusOptions = [
           Only errors
         </button>
       </div>
-      <span class="ml-auto whitespace-nowrap text-panel-muted">{{ visible }} of {{ total }}</span>
+      <span class="ml-auto whitespace-nowrap text-panel-muted">{{ visible }} of {{ total }} calls</span>
       <template v-if="preview">
-        <ToolbarButton label="Add 10 events" @click="emit('add')">
-          Add 10 events
+        <ToolbarButton label="Add sample Trace" @click="emit('add')">
+          Add sample Trace
         </ToolbarButton>
         <span class="rounded-full border border-cyan-700 px-3 py-1 text-xs text-cyan-300 uppercase">Preview</span>
       </template>

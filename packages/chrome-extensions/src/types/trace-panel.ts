@@ -1,9 +1,7 @@
-import type { TraceEventEnvelope } from '@trace-script/metadata'
-import type { TRACE_FILTER_VALUE, TRACE_STATUS } from '@/utils/ui-model'
+import type { CallStatus, TraceStatus } from '@trace-script/core'
 
-export type EventTypeFilter = typeof TRACE_FILTER_VALUE.ALL | TraceEventEnvelope['type']
-export type StatusFilter = typeof TRACE_FILTER_VALUE.ALL | typeof TRACE_STATUS[keyof typeof TRACE_STATUS]
-
+export type EventTypeFilter = 'all' | 'model' | 'tool'
+export type StatusFilter = 'all' | CallStatus | TraceStatus
 export interface TracePanelFilter {
   query: string
   type: EventTypeFilter
@@ -11,5 +9,4 @@ export interface TracePanelFilter {
   agent: string
   onlyErrors: boolean
 }
-
-export type DetailTab = 'Overview' | 'Usage' | 'Payload' | 'Timing' | 'Relations' | 'Raw'
+export type DetailTab = 'Input / Output' | 'Overview' | 'Usage' | 'Timing' | 'Relations' | 'Raw Events'

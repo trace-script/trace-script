@@ -21,11 +21,7 @@ export const TRACE_EVENT_TYPES = [
 ] as const
 
 const identifierSchema = z.string().min(1).max(200)
-// Keep timestamp parsing compatible with Zod 3 runtimes while using Zod 4's
-// JSON schema for request and response payloads.
-const timestampSchema = z.iso?.datetime
-  ? z.iso.datetime({ offset: false })
-  : z.string().datetime({ offset: false })
+const timestampSchema = z.iso.datetime({ offset: false })
 const eventFields = {
   eventId: identifierSchema,
   traceId: identifierSchema,
@@ -37,18 +33,23 @@ const jsonObjectSchema = z.record(z.string(), z.json())
 
 export const traceEventEnvelopeSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...eventFields, type: z.literal(TRACE_EVENT_TYPE.TRACE_START) }),
-  z.strictObject({ ...eventFields, type: z.literal(TRACE_EVENT_TYPE.MODEL_REQUEST), payload: jsonObjectSchema }),
-  z.strictObject({ ...eventFields, type: z.literal(TRACE_EVENT_TYPE.MODEL_RESPONSE), payload: jsonObjectSchema }),
+  z.strictObject({ ...eventFields, type: z.literal(TRACE_EVENT_TYPE.MODEL_REQUEST), requestId: identifierSchema.optional(), payload: jsonObjectSchema }),
+  z.strictObject({ ...eventFields, type: z.literal(TRACE_EVENT_TYPE.MODEL_RESPONSE), requestId: identifierSchema.optional(), payload: jsonObjectSchema }),
   z.strictObject({
     ...eventFields,
     type: z.literal(TRACE_EVENT_TYPE.TOOL_RESULT),
-    payload: z.strictObject({ callId: identifierSchema, output: z.string() }),
+    payload: z.strictObject({
+      callId: identifierSchema,
+      output: z.string(),
+      status: z.enum(['success', 'failed', 'cancelled']).optional(),
+      message: z.string().optional(),
+    }),
   }),
-  z.strictObject({ ...eventFields, type: z.literal(TRACE_EVENT_TYPE.TRACE_END) }),
+  z.strictObject({ ...eventFields, type: z.literal(TRACE_EVENT_TYPE.TRACE_END), status: z.literal('cancelled').optional() }),
   z.strictObject({
     ...eventFields,
     type: z.literal(TRACE_EVENT_TYPE.TRACE_ERROR),
-    payload: z.strictObject({ message: z.string() }),
+    payload: z.strictObject({ message: z.string(), requestId: identifierSchema.optional(), callId: identifierSchema.optional() }).refine(value => !(value.requestId && value.callId), 'An error can target only one call'),
   }),
 ])
 

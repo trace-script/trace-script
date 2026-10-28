@@ -42,6 +42,7 @@
     "@nuxt/eslint": "catalog:lint",
     "@tailwindcss/vite": "catalog:build",
     "@trace-script/metadata": "workspace:*",
+    "@trace-script/sdk": "workspace:*",
     "@types/chrome": "catalog:types",
     "@types/node": "catalog:types",
     "nuxt": "catalog:build",

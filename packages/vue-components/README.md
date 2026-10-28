@@ -29,3 +29,5 @@ const items: AgentWorkOverviewItem[] = [
 ```
 
 The component emits the complete selected item through `select` and a zoomed interval through `selectRange`. `startTime` and `duration` use milliseconds; `startTime` may be relative or absolute as long as every item uses the same clock. Set `minimum-width` when the full timeline should remain horizontally scrollable before zooming.
+
+Omit `duration` when the final interval is unknown; the item remains selectable as a minimum-width marker and is labelled “Duration unknown”, distinct from an observed zero interval. `durationLabel` can supply a more specific label such as a tool return interval or time anomaly. Waiting, incomplete, interrupted, and unknown states retain their status in accessible labels and tooltips.

@@ -1,5 +1,50 @@
 @import 'tailwindcss' source('../');
 
+@layer components {
+  .details-fields {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    gap: 0.5rem 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .details-field-label,
+  .details-section-label {
+    color: var(--color-panel-muted);
+    font-weight: 600;
+  }
+  .details-section-label {
+    margin-bottom: 0.5rem;
+  }
+  .details-field-value {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .details-code {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+  .status-success {
+    color: var(--color-success);
+  }
+  .status-failed {
+    color: var(--color-danger);
+  }
+  .status-running,
+  .status-waiting,
+  .status-incomplete,
+  .status-interrupted,
+  .status-conflict {
+    color: var(--color-warning);
+  }
+  .status-unknown,
+  .status-cancelled {
+    color: var(--color-panel-muted);
+  }
+}
+
 @source inline("timeline-layout-{80..360..4}");
 @source inline("details-layout-{260..520..4}");
 

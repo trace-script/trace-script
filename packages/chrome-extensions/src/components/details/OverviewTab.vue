@@ -1,44 +1,57 @@
 <script setup lang="ts">
-import type { TraceEventEnvelope } from '@trace-script/metadata'
-import { eventAgent, eventModel, eventStatus, eventTraceId, TRACE_STATUS } from '@/utils/ui-model'
+import type { TraceRecord } from '@trace-script/core'
+import { computed } from 'vue'
 
-const props = defineProps<{ event: TraceEventEnvelope }>()
-
-function statusClass(event: TraceEventEnvelope): string {
-  const status = eventStatus(event)
-  if (status === TRACE_STATUS.RUNNING)
-    return 'text-warning'
-  if (status === TRACE_STATUS.FAILED)
-    return 'text-danger'
-  if (status === TRACE_STATUS.CANCELLED)
-    return 'text-panel-muted'
-  return 'text-success'
-}
-
-const fields = [
-  { label: 'Type', value: (event: TraceEventEnvelope) => event.type, className: () => '' },
-  { label: 'Status', value: eventStatus, className: statusClass },
-  { label: 'Agent', value: eventAgent, className: () => '' },
-  { label: 'Model', value: eventModel, className: () => '' },
-  { label: 'Trace ID', value: eventTraceId, className: () => '' },
-  { label: 'Event ID', value: (event: TraceEventEnvelope) => event.eventId, className: () => '' },
-  { label: 'Sequence', value: (event: TraceEventEnvelope) => `#${event.sequence}`, className: () => '' },
-  { label: 'Timestamp', value: (event: TraceEventEnvelope) => event.timestamp, className: () => '' },
-] as const
+const props = defineProps<{ record: TraceRecord }>()
+const fields = computed(() => {
+  const record = props.record
+  const fields = [
+    { label: 'Type', value: record.kind, className: '' },
+    { label: 'Status', value: record.status, className: `status-${record.status}` },
+    { label: 'Trace ID', value: record.traceId, className: '' },
+  ]
+  if (record.kind === 'trace') {
+    fields.push({ label: 'Call count', value: String(record.calls.length), className: '' })
+  }
+  else {
+    fields.push(
+      { label: 'Call identifier', value: record.callId, className: '' },
+      { label: 'Name', value: record.name, className: '' },
+      { label: 'Model', value: record.model, className: '' },
+      { label: 'Agent', value: record.agent, className: '' },
+    )
+  }
+  return fields
+})
 </script>
 
 <template>
-  <dl class="mb-5 grid grid-cols-[6.875rem_minmax(0,1fr)] gap-x-4">
-    <template v-for="field in fields" :key="field.label">
-      <dt class="flex min-h-7 items-center p-0 text-sm leading-3.5 font-semibold text-panel-muted">
-        {{ field.label }}
-      </dt>
-      <dd
-        class="flex min-h-7 min-w-0 items-center p-0 text-sm leading-3.5 text-panel-text [overflow-wrap:anywhere]"
-        :class="field.className(props.event)"
-      >
-        {{ field.value(props.event) }}
-      </dd>
-    </template>
-  </dl>
+  <div>
+    <dl class="details-fields">
+      <template v-for="field in fields" :key="field.label">
+        <dt class="details-field-label">
+          {{ field.label }}
+        </dt>
+        <dd class="details-field-value" :class="field.className">
+          {{ field.value }}
+        </dd>
+      </template>
+    </dl>
+    <h3 class="details-section-label">
+      Data integrity
+    </h3>
+    <p v-if="!record.issues.length">
+      No integrity issues observed.
+    </p>
+    <ul v-else class="status-incomplete">
+      <li v-for="issue in record.issues" :key="issue">
+        {{ issue }}
+      </li>
+    </ul>
+    <pre
+      v-for="(error, index) in record.errors"
+      :key="index"
+      class="details-code status-failed"
+    >{{ error }}</pre>
+  </div>
 </template>

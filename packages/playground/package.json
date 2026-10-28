@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@trace-script/vue-components": "workspace:*",
+    "@vueuse/core": "catalog:",
     "vue": "catalog:ui"
   },
   "devDependencies": {

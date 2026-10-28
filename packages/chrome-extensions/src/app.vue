@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { AgentWorkOverviewItem } from '@trace-script/vue-components'
 import { AgentWorkOverview } from '@trace-script/vue-components'
-import { computed } from 'vue'
+import { useToggle } from '@vueuse/core'
+import { computed, toRef } from 'vue'
 import { useTracePanel } from '@/hooks/use-trace-panel'
 import { toOverviewItems } from '@/utils/overview-model'
 import EventDetails from '@/views/EventDetails.vue'
@@ -10,21 +11,22 @@ import TraceStatusBar from '@/views/TraceStatusBar.vue'
 import TraceToolbar from '@/views/TraceToolbar.vue'
 
 const {
-  events,
-  selectedId,
-  selectedEvent,
+  traces,
+  calls,
+  activeId,
+  selectedRecord,
   isPreview,
   connected,
   filtersVisible,
   recording,
   filter,
   agents,
-  visibleEvents,
-  totalTokens,
-  visibleTokens,
+  visibleCalls,
+  visibleTraces,
+  totalUsage,
+  visibleUsage,
   failedCount,
-  maxDuration,
-  totalDuration,
+  failedTraceCount,
   detailsWidth,
   workspaceClass,
   contentClass,
@@ -36,7 +38,9 @@ const {
   nudgeTimeline,
 } = useTracePanel()
 
-const overviewItems = computed(() => toOverviewItems(visibleEvents.value))
+const overviewItems = computed(() => toOverviewItems(visibleCalls.value))
+const toggleFilters = useToggle(filtersVisible)
+const toggleErrors = useToggle(toRef(filter, 'onlyErrors'))
 
 function onOverviewSelect(item: AgentWorkOverviewItem): void {
   selectEvent(item.id)
@@ -51,8 +55,8 @@ function onOverviewSelect(item: AgentWorkOverviewItem): void {
       v-model:status="filter.status"
       v-model:agent="filter.agent"
       :agents="agents"
-      :total="events.length"
-      :visible="visibleEvents.length"
+      :total="calls.length"
+      :visible="visibleCalls.length"
       :preview="isPreview"
       :recording="recording"
       :filters-visible="filtersVisible"
@@ -60,14 +64,14 @@ function onOverviewSelect(item: AgentWorkOverviewItem): void {
       @clear="clearEvents"
       @add="addPreviewEvents"
       @toggle-recording="toggleRecording"
-      @toggle-filters="filtersVisible = !filtersVisible"
-      @toggle-errors="filter.onlyErrors = !filter.onlyErrors"
+      @toggle-filters="toggleFilters()"
+      @toggle-errors="toggleErrors()"
     />
     <div class="grid min-h-0 flex-1" :class="workspaceClass">
       <AgentWorkOverview
         class="min-h-0 max-h-90 rounded-none border-0"
         :items="overviewItems"
-        :selected-id="selectedId"
+        :selected-id="activeId"
         theme="dark"
         @select="onOverviewSelect"
       />
@@ -82,8 +86,9 @@ function onOverviewSelect(item: AgentWorkOverviewItem): void {
       />
       <div class="grid min-h-0 min-w-0 overflow-hidden" :class="contentClass">
         <EventTable
-          :events="visibleEvents"
-          :selected-id="selectedId"
+          :calls="visibleCalls"
+          :traces="visibleTraces"
+          :selected-id="activeId"
           @select="selectEvent"
         />
         <div
@@ -96,21 +101,21 @@ function onOverviewSelect(item: AgentWorkOverviewItem): void {
           @keydown.right.prevent="detailsWidth = Math.max(260, detailsWidth - 8)"
         />
         <EventDetails
-          :event="selectedEvent"
-          :siblings="events"
+          :record="selectedRecord || undefined"
+          :traces="traces"
           @select="selectEvent"
         />
       </div>
     </div>
     <TraceStatusBar
       :connected="connected"
-      :event-count="events.length"
-      :visible-count="visibleEvents.length"
-      :total-tokens="totalTokens"
-      :visible-tokens="visibleTokens"
+      :trace-count="traces.length"
+      :call-count="calls.length"
+      :visible-count="visibleCalls.length"
+      :total-usage="totalUsage"
+      :visible-usage="visibleUsage"
       :failed-count="failedCount"
-      :max-duration="maxDuration"
-      :total-duration="totalDuration"
+      :failed-trace-count="failedTraceCount"
     />
   </main>
 </template>

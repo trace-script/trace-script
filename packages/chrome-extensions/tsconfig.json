@@ -1,17 +1,21 @@
 {
   "extends": "./.nuxt/tsconfig.json",
   "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "types": [
       "chrome",
       "node"
     ]
   },
   "include": [
-    "./.nuxt/nuxt.d.ts",
-    "./.nuxt/nuxt.node.d.ts",
     "scripts",
     "tests",
-    "src/**/*",
+    "src",
+    "./.nuxt/nuxt.d.ts",
+    "./.nuxt/nuxt.node.d.ts",
     "./nuxt.config.*",
     "./vitest.config.ts"
   ]

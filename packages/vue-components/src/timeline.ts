@@ -23,34 +23,33 @@ export interface AgentWorkOverviewLayout {
   rows: AgentWorkOverviewRow[]
 }
 
-export function createAgentWorkOverviewLayout(items: readonly AgentWorkOverviewItem[]): AgentWorkOverviewLayout {
-  const orderedItems = [...items].sort((left, right) => left.startTime - right.startTime || left.id.localeCompare(right.id))
-  const firstStart = orderedItems.length > 0 ? Math.min(...orderedItems.map(item => item.startTime)) : 0
-  const rows = orderedItems.map(item => ({
-    item,
-    start: Math.max(0, item.startTime - firstStart),
-    duration: Math.max(0, item.duration),
-    overlapCount: 0,
-  }))
-
+function markOverlappingRows(rows: AgentWorkOverviewRow[]): void {
   let furthestEnd = 0
-  let furthestRowIndex = -1
-  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-    const row = rows[rowIndex]
-    if (!row)
-      continue
+  let furthestRow: AgentWorkOverviewRow | false = false
+  for (const row of rows) {
     const rowEnd = row.start + row.duration
-    if (row.start < furthestEnd) {
+    if (furthestRow && row.start < furthestEnd) {
       row.overlapCount = 1
-      const furthestRow = rows[furthestRowIndex]
-      if (furthestRow)
-        furthestRow.overlapCount = 1
+      furthestRow.overlapCount = 1
     }
     if (rowEnd > furthestEnd) {
       furthestEnd = rowEnd
-      furthestRowIndex = rowIndex
+      furthestRow = row
     }
   }
+}
+
+export function createAgentWorkOverviewLayout(items: readonly AgentWorkOverviewItem[]): AgentWorkOverviewLayout {
+  const orderedItems = [...items].sort((left, right) => left.startTime - right.startTime || left.id.localeCompare(right.id))
+  const firstStart = orderedItems[0]?.startTime ?? 0
+  const rows = orderedItems.map(item => ({
+    item,
+    start: Math.max(0, item.startTime - firstStart),
+    duration: Math.max(0, item.duration ?? 0),
+    overlapCount: 0,
+  }))
+
+  markOverlappingRows(rows)
 
   const groupedRows = new Map<string, AgentWorkOverviewRow[]>()
   for (const row of rows) {

@@ -21,7 +21,8 @@
     "vue": "catalog:ui"
   },
   "dependencies": {
-    "@trace-script/shared": "workspace:*"
+    "@trace-script/shared": "workspace:*",
+    "@vueuse/core": "catalog:"
   },
   "devDependencies": {
     "@trace-script/tsconfig": "workspace:*",

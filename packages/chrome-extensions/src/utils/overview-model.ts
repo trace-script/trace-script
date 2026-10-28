@@ -1,18 +1,19 @@
-import type { TraceEventEnvelope } from '@trace-script/metadata'
+import type { CallRecord } from '@trace-script/core'
 import type { AgentWorkOverviewItem } from '@trace-script/vue-components'
-import { eventDuration, eventName, eventStatus, eventTimestamp } from '@/utils/ui-model'
+import { timingText } from '@/utils/ui-model'
 
-export function toOverviewItem(event: TraceEventEnvelope): AgentWorkOverviewItem {
+export function toOverviewItem(call: CallRecord): AgentWorkOverviewItem {
   return {
-    id: event.eventId,
-    name: eventName(event),
-    group: event.type,
-    startTime: eventTimestamp(event),
-    duration: eventDuration(event),
-    status: eventStatus(event),
+    id: call.id,
+    name: `${call.name} · ${call.traceId} · ${call.callId}`,
+    group: call.kind,
+    startTime: Date.parse(call.timing.start ?? call.timing.end ?? call.events[0]?.timestamp ?? '') || 0,
+    duration: call.timing.duration,
+    durationLabel: `${call.kind === 'tool' ? 'Return interval' : 'Duration'}: ${timingText(call.timing, call.status === 'running')}`,
+    status: call.status,
   }
 }
 
-export function toOverviewItems(events: readonly TraceEventEnvelope[]): AgentWorkOverviewItem[] {
-  return events.map(toOverviewItem)
+export function toOverviewItems(calls: readonly CallRecord[]): AgentWorkOverviewItem[] {
+  return calls.map(toOverviewItem)
 }

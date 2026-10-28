@@ -1,36 +1,42 @@
+import type { CallRecord, TraceRecord, TraceSummary, UsageSummary } from '@trace-script/core'
 import type { TraceEventEnvelope } from '@trace-script/metadata'
-import type { ComputedRef, Ref } from 'vue'
+import type { ComputedRef, Ref, ShallowRef } from 'vue'
 import type { WorkerToPanelMessage } from '@/messages'
 import type { EventTypeFilter, StatusFilter, TracePanelFilter } from '@/types/trace-panel'
-import { useEventListener, useToggle } from '@vueuse/core'
-import { computed, ref as deepRef, onMounted, onUnmounted, reactive, shallowRef } from 'vue'
+import { aggregateEvents, sumUsage } from '@trace-script/core'
+import { onKeyStroke, useEventListener, useToggle } from '@vueuse/core'
+import { computed, onMounted, onUnmounted, reactive, shallowRef } from 'vue'
 import { EXTENSION_MESSAGE_TYPE, EXTENSION_PORT_NAME } from '@/messages'
-import { eventAgent, eventDuration, eventName, eventStatus, eventTimestamp, eventTokens, TRACE_FILTER_VALUE, TRACE_STATUS } from '@/utils/ui-model'
+import { previewEvents } from '@/preview'
+import { matchesCall, matchesTrace, TRACE_FILTER_VALUE } from '@/utils/ui-model'
 
 const TIMELINE_FALLBACK_HEIGHT = 140
 const RESIZE_STEP = 4
 
 interface TracePanelState {
-  events: Ref<TraceEventEnvelope[]>
-  selectedId: Ref<string>
-  selectedEvent: ComputedRef<TraceEventEnvelope | undefined>
-  isPreview: Ref<boolean>
-  connected: Ref<boolean>
-  filtersVisible: Ref<boolean>
+  events: ShallowRef<TraceEventEnvelope[]>
+  traces: ComputedRef<TraceSummary[]>
+  calls: ComputedRef<CallRecord[]>
+  selectedId: ShallowRef<string>
+  activeId: ComputedRef<string>
+  selectedRecord: ComputedRef<TraceRecord | false>
+  isPreview: ShallowRef<boolean>
+  connected: ShallowRef<boolean>
+  filtersVisible: ShallowRef<boolean>
   recording: Ref<boolean>
   filter: TracePanelFilter
   agents: ComputedRef<string[]>
-  visibleEvents: ComputedRef<TraceEventEnvelope[]>
-  totalTokens: ComputedRef<number>
-  visibleTokens: ComputedRef<number>
+  visibleCalls: ComputedRef<CallRecord[]>
+  visibleTraces: ComputedRef<TraceSummary[]>
+  totalUsage: ComputedRef<UsageSummary>
+  visibleUsage: ComputedRef<UsageSummary>
   failedCount: ComputedRef<number>
-  maxDuration: ComputedRef<number>
-  totalDuration: ComputedRef<number>
-  timelineHeight: Ref<number>
-  detailsWidth: Ref<number>
+  failedTraceCount: ComputedRef<number>
+  timelineHeight: ShallowRef<number>
+  detailsWidth: ShallowRef<number>
   workspaceClass: ComputedRef<string>
   contentClass: ComputedRef<string>
-  toggleRecording: () => boolean
+  toggleRecording: (value?: boolean) => boolean
   handleMessage: (message: WorkerToPanelMessage) => void
   selectEvent: (id: string) => void
   clearEvents: () => void
@@ -40,12 +46,23 @@ interface TracePanelState {
 }
 
 export function useTracePanel(): TracePanelState {
-  const events = deepRef<TraceEventEnvelope[]>([])
-  const selectedId = shallowRef('')
+  const events = shallowRef<TraceEventEnvelope[]>([])
   const isPreview = shallowRef(false)
   const connected = shallowRef(false)
-  const filtersVisible = shallowRef(true)
   const [recording, toggleRecording] = useToggle(true)
+
+  const traces = computed(() => aggregateEvents(events.value))
+  const calls = computed(() => {
+    const allCalls = traces.value.flatMap(trace => trace.calls)
+    return allCalls.sort((left, right) => {
+      const leftTimestamp = left.timing.start ?? left.timing.end ?? left.events[0]?.timestamp ?? ''
+      const rightTimestamp = right.timing.start ?? right.timing.end ?? right.events[0]?.timestamp ?? ''
+      return Date.parse(leftTimestamp) - Date.parse(rightTimestamp) || left.id.localeCompare(right.id)
+    })
+  })
+  const records = computed(() => traces.value.flatMap(trace => [trace, ...trace.calls]))
+
+  const filtersVisible = shallowRef(true)
   const filter = reactive({
     query: '',
     type: TRACE_FILTER_VALUE.ALL as EventTypeFilter,
@@ -53,136 +70,90 @@ export function useTracePanel(): TracePanelState {
     agent: TRACE_FILTER_VALUE.ALL,
     onlyErrors: false,
   })
-  // 0 表示「按内容自适应高度」，用户拖拽或按键调整后变为显式像素高度。
-  const timelineHeight = shallowRef(0)
-  const detailsWidth = shallowRef(500)
-  const dragging = shallowRef<'timeline' | 'details' | null>(null)
-  let dragOrigin = 0
-  let dragSize = 0
-  let cleanup = (): void => {}
-  const previewEvents = [
-    { eventId: 'preview-start', traceId: 'preview-trace', sequence: 1, timestamp: '2024-01-01T12:00:00.000Z', type: 'trace.start' },
-    {
-      eventId: 'preview-request',
-      traceId: 'preview-trace',
-      sequence: 2,
-      timestamp: '2024-01-01T12:00:00.120Z',
-      type: 'model.request',
-      payload: { name: 'model.request', model: 'gpt-4.1-mini', agent: 'planner', input: 'Summarize the latest trace.' },
-    },
-    {
-      eventId: 'preview-response',
-      traceId: 'preview-trace',
-      sequence: 3,
-      timestamp: '2024-01-01T12:00:01.340Z',
-      type: 'model.response',
-      payload: {
-        name: 'model.response',
-        model: 'gpt-4.1-mini',
-        agent: 'planner',
-        output_text: 'The trace is healthy.',
-        usage: { total_tokens: 42 },
-        duration_ms: 1220,
-        status: 'success',
-      },
-    },
-    {
-      eventId: 'preview-tool',
-      traceId: 'preview-trace',
-      sequence: 4,
-      timestamp: '2024-01-01T12:00:02.000Z',
-      type: 'tool.result',
-      payload: { callId: 'call_preview', output: 'Tool result received.' },
-    },
-  ] as TraceEventEnvelope[]
-  const visibleEvents = computed(() => {
-    const query = filter.query.toLowerCase()
-    return events.value.filter((event) => {
-      const agent = eventAgent(event)
-      const status = eventStatus(event)
-      const searchableText = `${eventName(event)} ${event.eventId} ${event.traceId} ${agent}`.toLowerCase()
-      const matchesQuery = !filter.query || searchableText.includes(query)
-      const matchesType = filter.type === TRACE_FILTER_VALUE.ALL || event.type === filter.type
-      const matchesStatus = filter.status === TRACE_FILTER_VALUE.ALL || status === filter.status
-      const matchesAgent = filter.agent === TRACE_FILTER_VALUE.ALL || agent === filter.agent
-      const matchesErrorFilter = !filter.onlyErrors || status === TRACE_STATUS.FAILED
-      return matchesQuery && matchesType && matchesStatus && matchesAgent && matchesErrorFilter
-    })
-  })
-  const selectedEvent = computed(() => events.value.find(event => event.eventId === selectedId.value))
   const agents = computed(() => {
-    const eventAgents = events.value.map(eventAgent)
-    const namedAgents = eventAgents.filter(agent => agent !== '—')
-    const uniqueAgents = new Set(namedAgents)
-    return [TRACE_FILTER_VALUE.ALL, ...uniqueAgents]
+    const callAgents = calls.value.map(call => call.agent).filter(agent => agent !== '—')
+    return [TRACE_FILTER_VALUE.ALL, ...new Set(callAgents)]
   })
-  const totalTokens = computed(() => {
-    return events.value.reduce((sum, event) => {
-      const tokens = eventTokens(event) ?? 0
-      return sum + tokens
-    }, 0)
+  const visibleTraces = computed(() => traces.value.filter((trace) => {
+    return matchesTrace(trace, filter)
+      || trace.calls.some(call => matchesCall(call, filter, trace))
+  }))
+  const visibleCalls = computed(() => calls.value.filter((call) => {
+    const trace = traces.value.find(trace => trace.traceId === call.traceId)
+    return matchesCall(call, filter, trace)
+  }))
+
+  const selectedId = shallowRef('')
+  const selectedSources = shallowRef<string[]>([])
+  const selectedKind = shallowRef<'trace' | 'model' | 'tool'>('trace')
+  const selectedRecord = computed(() => {
+    const selected = records.value.find(record => record.id === selectedId.value)
+    if (selected)
+      return selected
+
+    // Pairing late events can change a record's ID; recover it from its source events.
+    return records.value.find((record) => {
+      return record.kind === selectedKind.value
+        && record.events.some(event => selectedSources.value.includes(event.eventId))
+    }) ?? false
   })
-  const visibleTokens = computed(() => {
-    return visibleEvents.value.reduce((sum, event) => {
-      const tokens = eventTokens(event) ?? 0
-      return sum + tokens
-    }, 0)
-  })
-  const failedCount = computed(() => {
-    const failedEvents = events.value.filter(event => eventStatus(event) === TRACE_STATUS.FAILED)
-    return failedEvents.length
-  })
-  const maxDuration = computed(() => {
-    return events.value.reduce((max, event) => {
-      const duration = eventDuration(event)
-      return Math.max(max, duration)
-    }, 0)
-  })
-  const totalDuration = computed(() => {
-    return events.value.reduce((sum, event) => {
-      const duration = eventDuration(event)
-      return sum + duration
-    }, 0)
-  })
-  const workspaceClass = computed(() => timelineHeight.value > 0
-    ? `timeline-layout-${timelineHeight.value}`
-    : 'timeline-layout-auto')
-  const contentClass = computed(() => `details-layout-${detailsWidth.value}`)
-  function handleMessage(message: WorkerToPanelMessage): void {
-    if (message.type === EXTENSION_MESSAGE_TYPE.TRACE_QUERY_RESULT) {
-      events.value = [...message.events]
-    }
-    else if (message.type === EXTENSION_MESSAGE_TYPE.TRACE_EVENTS_APPEND && recording.value) {
-      const alreadyReceived = events.value.some(event => event.eventId === message.event.eventId)
-      if (!alreadyReceived)
-        events.value = [...events.value, message.event]
-    }
-    if (!selectedId.value && events.value[0])
-      selectedId.value = events.value[0].eventId
-  }
+  const activeId = computed(() => selectedRecord.value ? selectedRecord.value.id : '')
+
   function selectEvent(id: string): void {
+    const record = records.value.find(record => record.id === id)
+    if (!record)
+      return
     selectedId.value = id
+    selectedSources.value = record.events.map(event => event.eventId)
+    selectedKind.value = record.kind
+  }
+
+  const totalUsage = computed(() => sumUsage(calls.value))
+  const visibleUsage = computed(() => sumUsage(visibleCalls.value))
+  const failedCount = computed(() => calls.value.filter(call => call.status === 'failed').length)
+  const failedTraceCount = computed(() => {
+    return traces.value.filter(trace => trace.status === 'failed' || trace.status === 'conflict').length
+  })
+
+  function handleMessage(message: WorkerToPanelMessage): void {
+    if (message.type === EXTENSION_MESSAGE_TYPE.TRACE_QUERY_RESULT)
+      events.value = [...message.events]
+    else if (message.type === EXTENSION_MESSAGE_TYPE.TRACE_EVENTS_APPEND && recording.value)
+      events.value = [...events.value, message.event]
+    if (!selectedRecord.value) {
+      const first = calls.value[0] ?? traces.value[0]
+      if (first)
+        selectEvent(first.id)
+    }
   }
   function clearEvents(): void {
     events.value = []
     selectedId.value = ''
+    selectedSources.value = []
   }
   function addPreviewEvents(): void {
     if (!isPreview.value)
       return
-    const offset = events.value.length
-    const base = eventTimestamp(previewEvents[0]!) + offset * 3000
-    const additions = Array.from({ length: 10 }, (_, index) => {
-      const event = previewEvents[index % previewEvents.length]!
-      return {
-        ...event,
-        eventId: `preview-${base}-${index}`,
-        sequence: offset + index + 1,
-        timestamp: new Date(base + index * 100).toISOString(),
-      }
-    })
-    events.value = [...events.value, ...additions]
+    const suffix = String(events.value.length)
+    const offset = events.value.length * 1000
+    events.value = [...events.value, ...previewEvents.map(event => ({
+      ...event,
+      traceId: `${event.traceId}-${suffix}`,
+      eventId: `${event.eventId}-${suffix}`,
+      timestamp: new Date(Date.parse(event.timestamp) + offset).toISOString(),
+    }))]
   }
+
+  const timelineHeight = shallowRef(0)
+  const detailsWidth = shallowRef(500)
+  const dragging = shallowRef<'timeline' | 'details' | ''>('')
+  let dragOrigin = 0
+  let dragSize = 0
+  const workspaceClass = computed(() => timelineHeight.value > 0
+    ? `timeline-layout-${timelineHeight.value}`
+    : 'timeline-layout-auto')
+  const contentClass = computed(() => `details-layout-${detailsWidth.value}`)
+
   function startResize(kind: 'timeline' | 'details', event: PointerEvent): void {
     dragging.value = kind
     dragOrigin = kind === 'timeline' ? event.clientY : event.clientX
@@ -195,8 +166,6 @@ export function useTracePanel(): TracePanelState {
     else {
       dragSize = detailsWidth.value
     }
-    window.addEventListener('pointermove', resize)
-    window.addEventListener('pointerup', stopResize, { once: true })
     ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
   }
   function resize(event: PointerEvent): void {
@@ -213,35 +182,42 @@ export function useTracePanel(): TracePanelState {
       detailsWidth.value = snapResize(requestedWidth, 260, 520)
     }
   }
-  function stopResize(): void {
-    dragging.value = null
-    window.removeEventListener('pointermove', resize)
-  }
   function nudgeTimeline(delta: number): void {
     const autoHeight = (document.querySelector('.agent-work-overview') as HTMLElement | null)?.offsetHeight ?? TIMELINE_FALLBACK_HEIGHT
     const current = timelineHeight.value > 0 ? timelineHeight.value : autoHeight
     timelineHeight.value = snapResize(current + delta, 80, 360)
   }
-  function keyboard(event: KeyboardEvent): void {
-    const index = visibleEvents.value.findIndex(item => item.eventId === selectedId.value)
-    if (event.key === 'ArrowDown' && visibleEvents.value.length) {
-      const lastIndex = visibleEvents.value.length - 1
-      const nextIndex = Math.min(index + 1, lastIndex)
-      selectedId.value = visibleEvents.value[nextIndex]!.eventId
+  useEventListener('pointermove', resize)
+  useEventListener('pointerup', () => dragging.value = '')
+
+  onKeyStroke(['ArrowDown', 'ArrowUp', 'Escape'], (event) => {
+    const target = event.target
+    if (target instanceof HTMLElement && (target.closest('input, select, textarea, [role="separator"], [role="tablist"], .agent-work-overview') || target.isContentEditable))
+      return
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      const ids = visibleCalls.value.map(call => call.id)
+      if (!ids.length)
+        return
+      event.preventDefault()
+      const index = ids.indexOf(activeId.value)
+      const next = event.key === 'ArrowDown' ? Math.min(index + 1, ids.length - 1) : Math.max(index - 1, 0)
+      selectEvent(ids[next]!)
     }
-    if (event.key === 'ArrowUp' && visibleEvents.value.length) {
-      const previousIndex = Math.max(index - 1, 0)
-      selectedId.value = visibleEvents.value[previousIndex]!.eventId
-    }
-    if (event.key === 'Escape')
+    if (event.key === 'Escape') {
       selectedId.value = ''
-  }
+      selectedSources.value = []
+    }
+  })
+
+  let cleanup = (): void => {}
   onMounted(() => {
     if (typeof chrome === 'undefined' || !chrome.devtools?.inspectedWindow) {
       isPreview.value = true
       connected.value = true
       events.value = [...previewEvents]
-      selectedId.value = previewEvents[0]!.eventId
+      const first = calls.value[0]
+      if (first)
+        selectEvent(first.id)
       return
     }
     const port = chrome.runtime.connect({ name: EXTENSION_PORT_NAME.PANEL })
@@ -254,27 +230,29 @@ export function useTracePanel(): TracePanelState {
       connected.value = false
     }
   })
-  useEventListener('keydown', keyboard)
   onUnmounted(() => {
     cleanup()
-    window.removeEventListener('pointermove', resize)
   })
+
   return {
     events,
+    traces,
+    calls,
     selectedId,
-    selectedEvent,
+    activeId,
+    selectedRecord,
     isPreview,
     connected,
     filtersVisible,
     recording,
     filter,
     agents,
-    visibleEvents,
-    totalTokens,
-    visibleTokens,
+    visibleCalls,
+    visibleTraces,
+    totalUsage,
+    visibleUsage,
     failedCount,
-    maxDuration,
-    totalDuration,
+    failedTraceCount,
     timelineHeight,
     detailsWidth,
     workspaceClass,

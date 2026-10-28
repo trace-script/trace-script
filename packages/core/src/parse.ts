@@ -1,6 +1,7 @@
 import type { TraceBridgeMessage, TraceEventEnvelope } from '@trace-script/metadata'
 import type { z } from 'zod'
 import { traceBridgeMessageSchema, traceEventEnvelopeSchema } from '@trace-script/metadata'
+import { isString } from '@trace-script/shared'
 
 export interface ProtocolIssue {
   code: 'INVALID_EVENT' | 'INVALID_BRIDGE'
@@ -29,7 +30,7 @@ function schemaFailure(error: z.ZodError, code: ProtocolIssue['code']): Protocol
     success: false,
     issues: error.issues.map(issue => ({
       code,
-      path: issue.path.filter(segment => typeof segment === 'string' || typeof segment === 'number'),
+      path: issue.path.filter(segment => isString(segment) || typeof segment === 'number'),
       message: issue.message,
     })),
   }

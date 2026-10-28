@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { PropType } from 'vue'
 import type { AgentWorkOverviewItem, AgentWorkOverviewRange, AgentWorkOverviewTheme } from './model'
-import { formatMilliseconds } from '@trace-script/shared'
+import { formatMilliseconds, isUndefined } from '@trace-script/shared'
+import { onKeyStroke, transition, useDevicePixelRatio, useElementSize, useFocus, useRafFn, useScroll } from '@vueuse/core'
 import { computed, nextTick, onUnmounted, reactive, shallowRef, useId, useTemplateRef, watch } from 'vue'
 import { createAgentWorkOverviewLayout, createAgentWorkOverviewTicks, findAgentWorkOverviewItem, niceTickStep } from './timeline'
 
@@ -49,11 +50,13 @@ const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 const eventsViewport = useTemplateRef<HTMLElement>('eventsViewport')
 const ruler = useTemplateRef<HTMLElement>('ruler')
 const layout = computed(() => createAgentWorkOverviewLayout(props.items))
-const viewportWidth = shallowRef(0)
+const { width: viewportWidth } = useElementSize(eventsViewport, { width: 0, height: 0 }, { box: 'border-box' })
+const { x: scrollLeft } = useScroll(eventsViewport)
 const zoom = shallowRef(1)
 const focusedIndex = shallowRef(0)
 const hoveredId = shallowRef('')
-const keyboardFocused = shallowRef(false)
+const { focused: keyboardFocused } = useFocus(componentHost)
+const { pixelRatio } = useDevicePixelRatio()
 const tooltip = reactive({
   text: '',
   visible: false,
@@ -83,13 +86,33 @@ const timelineTicks = computed(() => {
 const focusedId = computed(() => layout.value.rows[focusedIndex.value]?.item.id ?? '')
 const focusedLabel = computed(() => {
   const row = layout.value.rows[focusedIndex.value]
-  return row ? `${row.item.name}, ${row.item.group}, ${formatMilliseconds(row.duration)}` : ''
+  return row ? `${row.item.name}, ${row.item.group}, ${durationText(row.item)}, ${row.item.status}` : ''
 })
 const activeOptionId = `${instanceId}-option`
 
-let animationFrame = 0
-let zoomAnimationFrame = 0
-let disposeEventsObserver = (): void => {}
+function durationText(item: AgentWorkOverviewItem): string {
+  return item.durationLabel ?? (isUndefined(item.duration) ? 'Duration unknown' : formatMilliseconds(Math.max(0, item.duration)))
+}
+
+const { resume: scheduleDraw } = useRafFn(drawOverview, { immediate: false, once: true })
+const zoomTransitionState = shallowRef<[number, number]>([1, 0])
+let zoomTransitionId = 0
+
+watch(zoomTransitionState, ([nextZoom, nextScrollLeft]) => {
+  zoom.value = nextZoom
+  scrollLeft.value = nextScrollLeft
+  syncRulerPosition(nextScrollLeft)
+  scheduleDraw()
+}, { deep: true })
+
+watch(scrollLeft, (value) => {
+  syncRulerPosition(value)
+  scheduleDraw()
+})
+
+onUnmounted(() => {
+  zoomTransitionId++
+})
 
 function readColor(name: string, fallback: string): string {
   const host = componentHost.value
@@ -108,16 +131,16 @@ function drawOverview(): void {
 
   const width = contentWidth.value
   const visibleWidth = viewportWidth.value
-  const visibleStart = eventsViewport.value?.scrollLeft ?? 0
+  const visibleStart = scrollLeft.value
   const height = canvasHeight.value
-  const pixelRatio = window.devicePixelRatio || 1
-  const bitmapWidth = Math.max(1, Math.round(visibleWidth * pixelRatio))
-  const bitmapHeight = Math.max(1, Math.round(height * pixelRatio))
+  const ratio = pixelRatio.value || 1
+  const bitmapWidth = Math.max(1, Math.round(visibleWidth * ratio))
+  const bitmapHeight = Math.max(1, Math.round(height * ratio))
   if (target.width !== bitmapWidth)
     target.width = bitmapWidth
   if (target.height !== bitmapHeight)
     target.height = bitmapHeight
-  context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
+  context.setTransform(ratio, 0, 0, ratio, 0, 0)
   context.clearRect(0, 0, visibleWidth, height)
   context.fillStyle = readColor('--awo-bg', '#fff')
   context.fillRect(0, 0, visibleWidth, height)
@@ -131,6 +154,10 @@ function drawOverview(): void {
     failed: readColor('--awo-failed', '#dc5c5c'),
     running: readColor('--awo-running', '#d79a28'),
     success: readColor('--awo-success', '#31a37d'),
+    waiting: readColor('--awo-running', '#d79a28'),
+    incomplete: readColor('--awo-cancelled', '#7b8491'),
+    interrupted: readColor('--awo-cancelled', '#7b8491'),
+    unknown: readColor('--awo-cancelled', '#7b8491'),
   }
 
   context.lineWidth = 1
@@ -195,15 +222,6 @@ function drawOverview(): void {
   }
 }
 
-function scheduleDraw(): void {
-  if (animationFrame)
-    return
-  animationFrame = window.requestAnimationFrame(() => {
-    animationFrame = 0
-    drawOverview()
-  })
-}
-
 function itemAtPointer(event: PointerEvent | MouseEvent): AgentWorkOverviewItem | false {
   const target = canvas.value
   const viewport = eventsViewport.value
@@ -212,7 +230,7 @@ function itemAtPointer(event: PointerEvent | MouseEvent): AgentWorkOverviewItem 
   const bounds = target.getBoundingClientRect()
   return findAgentWorkOverviewItem(
     layout.value,
-    viewport.scrollLeft + event.clientX - bounds.left,
+    scrollLeft.value + event.clientX - bounds.left,
     event.clientY - bounds.top,
     contentWidth.value,
     rowHeight,
@@ -226,7 +244,7 @@ function handlePointerMove(event: PointerEvent): void {
     const viewport = eventsViewport.value
     if (!target || !viewport)
       return
-    selection.endX = viewport.scrollLeft + event.clientX - target.getBoundingClientRect().left
+    selection.endX = scrollLeft.value + event.clientX - target.getBoundingClientRect().left
     if (Math.abs(selection.endX - selection.startX) > 3)
       selection.didMove = true
     tooltip.visible = false
@@ -247,7 +265,7 @@ function handlePointerMove(event: PointerEvent): void {
   const hostBounds = host.getBoundingClientRect()
   if (hoveredId.value !== item.id) {
     const row = layout.value.rows.find(candidate => candidate.item.id === item.id)
-    tooltip.text = `${item.name} · ${item.group} · ${formatMilliseconds(Math.max(0, item.duration))} · ${row?.overlapCount ? 'parallel' : 'serial'}`
+    tooltip.text = `${item.name} · ${item.group} · ${durationText(item)} · ${item.status} · ${row?.overlapCount ? 'parallel' : 'serial'}`
   }
   hoveredId.value = item.id
   tooltip.x = event.clientX - hostBounds.left + 12
@@ -268,7 +286,7 @@ function handlePointerDown(event: PointerEvent): void {
   selection.active = true
   selection.didMove = false
   selection.pointerId = event.pointerId
-  selection.startX = viewport.scrollLeft + event.clientX - target.getBoundingClientRect().left
+  selection.startX = scrollLeft.value + event.clientX - target.getBoundingClientRect().left
   selection.endX = selection.startX
   hoveredId.value = ''
   tooltip.visible = false
@@ -319,14 +337,6 @@ function handlePointerCancel(event: PointerEvent): void {
   scheduleDraw()
 }
 
-function handleScroll(event: Event): void {
-  const target = event.currentTarget
-  if (target instanceof HTMLElement) {
-    syncRulerPosition(target.scrollLeft)
-    scheduleDraw()
-  }
-}
-
 function handleWheel(event: WheelEvent): void {
   const viewport = eventsViewport.value
   if (!viewport)
@@ -341,13 +351,14 @@ function handleWheel(event: WheelEvent): void {
 
   // 以鼠标位置为锚点缩放，让指针下的内容在放大/缩小后保持不动。
   const pointerX = event.clientX - viewport.getBoundingClientRect().left
-  const previousRatio = (viewport.scrollLeft + pointerX) / contentWidth.value
+  const previousRatio = (scrollLeft.value + pointerX) / contentWidth.value
+  zoomTransitionId++
   zoom.value = nextZoom
   const nextWidth = baseWidth.value * nextZoom
   scheduleDraw()
   void nextTick(() => {
-    viewport.scrollLeft = Math.max(0, previousRatio * nextWidth - pointerX)
-    syncRulerPosition(viewport.scrollLeft)
+    scrollLeft.value = Math.max(0, previousRatio * nextWidth - pointerX)
+    syncRulerPosition(scrollLeft.value)
   })
 }
 
@@ -361,24 +372,17 @@ function zoomToRange(range: AgentWorkOverviewRange): void {
   const span = Math.max(range.endTime - range.startTime, duration / 1000)
   const targetZoom = Math.min(MAX_ZOOM, Math.max(1, duration / span))
   const targetScrollLeft = range.startTime / duration * baseWidth.value * targetZoom
-
-  const startZoom = zoom.value
-  const startScrollLeft = viewport.scrollLeft
-  const animStart = performance.now()
-  const ZOOM_TRANSITION_MS = 240
-
-  window.cancelAnimationFrame(zoomAnimationFrame)
-  const step = (now: number): void => {
-    const progress = Math.min(1, (now - animStart) / ZOOM_TRANSITION_MS)
-    const eased = 1 - (1 - progress) ** 3
-    zoom.value = startZoom + (targetZoom - startZoom) * eased
-    viewport.scrollLeft = startScrollLeft + (targetScrollLeft - startScrollLeft) * eased
-    syncRulerPosition(viewport.scrollLeft)
-    scheduleDraw()
-    if (progress < 1)
-      zoomAnimationFrame = window.requestAnimationFrame(step)
-  }
-  zoomAnimationFrame = window.requestAnimationFrame(step)
+  const transitionId = ++zoomTransitionId
+  void transition(
+    zoomTransitionState,
+    [zoom.value, scrollLeft.value],
+    [targetZoom, targetScrollLeft],
+    {
+      duration: 240,
+      easing: value => 1 - (1 - value) ** 3,
+      abort: () => transitionId !== zoomTransitionId,
+    },
+  )
 }
 
 function syncRulerPosition(value: number): void {
@@ -387,7 +391,7 @@ function syncRulerPosition(value: number): void {
     rulerElement.style.transform = `translate3d(-${value}px, 0, 0)`
 }
 
-function handleKeydown(event: KeyboardEvent): void {
+onKeyStroke(['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Enter', ' '], (event) => {
   if (layout.value.rows.length === 0)
     return
 
@@ -407,15 +411,7 @@ function handleKeydown(event: KeyboardEvent): void {
     if (row)
       selectItem(row.item)
   }
-}
-
-function handleFocus(): void {
-  keyboardFocused.value = true
-}
-
-function handleBlur(): void {
-  keyboardFocused.value = false
-}
+}, { target: componentHost })
 
 function selectItem(item: AgentWorkOverviewItem): void {
   const index = layout.value.rows.findIndex(row => row.item.id === item.id)
@@ -425,7 +421,7 @@ function selectItem(item: AgentWorkOverviewItem): void {
 }
 
 watch(
-  [layout, contentWidth, canvasHeight, hoveredId, focusedId, keyboardFocused, () => props.selectedId, () => props.theme],
+  [layout, contentWidth, canvasHeight, hoveredId, focusedId, keyboardFocused, pixelRatio, () => props.selectedId, () => props.theme],
   scheduleDraw,
   { flush: 'post' },
 )
@@ -439,33 +435,6 @@ watch(
   },
   { immediate: true },
 )
-
-// 用 watch 观察 eventsViewport 的出现（items 可能异步加载，v-if 块中的元素会在挂载后才渲染），
-// 而不是 onMounted 里一次性读取，否则首次 items 为空时会错过建立 ResizeObserver。
-watch(
-  eventsViewport,
-  (viewport) => {
-    if (!viewport)
-      return
-    viewportWidth.value = viewport.clientWidth
-    disposeEventsObserver()
-    const observer = new ResizeObserver(() => {
-      viewportWidth.value = viewport.clientWidth
-    })
-    observer.observe(viewport)
-    disposeEventsObserver = () => observer.disconnect()
-    scheduleDraw()
-  },
-  { flush: 'post' },
-)
-
-onUnmounted(() => {
-  disposeEventsObserver()
-  if (animationFrame)
-    window.cancelAnimationFrame(animationFrame)
-  if (zoomAnimationFrame)
-    window.cancelAnimationFrame(zoomAnimationFrame)
-})
 </script>
 
 <template>
@@ -477,9 +446,6 @@ onUnmounted(() => {
     :aria-label="ariaLabel"
     role="listbox"
     tabindex="0"
-    @blur="handleBlur"
-    @focus="handleFocus"
-    @keydown="handleKeydown"
     @wheel.prevent="handleWheel"
   >
     <template v-if="layout.rows.length">
@@ -519,7 +485,6 @@ onUnmounted(() => {
         <div
           ref="eventsViewport"
           class="agent-work-overview__events"
-          @scroll="handleScroll"
         >
           <div class="agent-work-overview__canvas-track" :style="{ height: `${canvasHeight}px`, width: `${contentWidth}px` }">
             <canvas

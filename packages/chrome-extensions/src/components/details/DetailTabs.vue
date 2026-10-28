@@ -7,7 +7,7 @@ const emit = defineEmits<{ 'update:active': [tab: DetailTab] }>()
 
 <template>
   <nav
-    class="flex h-auto shrink-0 gap-0 border-b border-divider bg-panel-surface"
+    class="flex h-auto shrink-0 gap-0 overflow-x-auto border-b border-divider bg-panel-surface"
     aria-label="Detail views"
     role="tablist"
   >

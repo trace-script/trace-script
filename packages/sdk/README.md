@@ -8,7 +8,7 @@ The Trace Script page SDK records model and tool events from a browser page and 
 pnpm add @trace-script/sdk
 ```
 
-The package exports `createTraceSdk`, `TraceHandle`, and `RecordResult`. The published build includes protocol validation, so applications do not need the private workspace packages.
+The package exports `createTraceSdk`, `TraceHandle`, `RecordResult`, `RequestRecordResult`, `ToolResult`, and `ErrorTarget`. The published build includes protocol validation, so applications do not need the private workspace packages.
 
 ## Quick start
 
@@ -27,9 +27,9 @@ async function answer(input: string) {
   }
 
   try {
-    trace.recordRequest(request)
+    const recorded = trace.recordRequest(request)
     const response = await openai.responses.create(request)
-    trace.recordResponse(response)
+    trace.recordResponse(recorded.requestId, response)
     trace.end()
     return response
   }
@@ -56,10 +56,10 @@ async function answerWithWeather(input: string) {
       input: [{ role: 'user', content: input }],
       tools: [{ type: 'function', name: 'get_weather' }],
     }
-    trace.recordRequest(firstRequest)
+    const firstRecorded = trace.recordRequest(firstRequest)
 
     const firstResponse = await openai.responses.create(firstRequest)
-    trace.recordResponse(firstResponse)
+    trace.recordResponse(firstRecorded.requestId, firstResponse)
 
     const call = firstResponse.output.find(item => item.type === 'function_call')
     if (!call)
@@ -78,10 +78,10 @@ async function answerWithWeather(input: string) {
       ],
       tools: firstRequest.tools,
     }
-    trace.recordRequest(secondRequest)
+    const secondRecorded = trace.recordRequest(secondRequest)
 
     const secondResponse = await openai.responses.create(secondRequest)
-    trace.recordResponse(secondResponse)
+    trace.recordResponse(secondRecorded.requestId, secondResponse)
     trace.end()
     return secondResponse
   }
@@ -107,17 +107,23 @@ Returns a `TraceHandle` and attempts to publish `trace.start`.
 ```ts
 interface TraceHandle {
   readonly traceId: string
-  recordRequest: (request: object) => RecordResult
-  recordResponse: (response: object) => RecordResult
-  recordToolResult: (result: { callId: string, output: string }) => RecordResult
-  end: () => RecordResult
-  fail: (error: Error | string) => RecordResult
+  recordRequest: (request: object) => RequestRecordResult
+  recordResponse: (requestId: string, response: object) => RecordResult
+  recordToolResult: (result: ToolResult) => RecordResult
+  end: (status?: 'cancelled') => RecordResult
+  fail: (error: Error | string, target?: ErrorTarget) => RecordResult
 }
 ```
 
 `recordRequest` and `recordResponse` accept the JSON object sent to or returned from the model and preserve its fields, including `output`, `usage`, and JSON `null` values. `recordToolResult` records the model's `function_call.call_id` as `callId` and the exact submitted output string.
 
-`end()` publishes `trace.end`. `fail(error)` publishes `trace.error` with `{ message }`, using `error.message` for an `Error`. Both are terminal: further record calls return `TRACE_ENDED`. Repeating either method is harmless and returns success without another event.
+`recordRequest` returns a `RecordResult` with a `requestId` on both success and failure, so the eventual response can still be recorded if request delivery failed. Each attempt, including retries, receives a new ID. Pass that ID to `recordResponse(requestId, response)`, even when concurrent responses complete in reverse order. The envelope's `requestId` is independent of the provider's response `id`; payloads are unchanged. Previously captured events without IDs remain readable through conservative legacy pairing in core.
+
+**Breaking API migration:** replace `recordResponse(response)` with `recordResponse(recorded.requestId, response)` using the ID returned by `recordRequest`. Recording failure should not prevent the application from calling its model. Record streaming requests once and pass the assembled final response once; no delta events or intermediate cumulative usage are supported.
+
+`ToolResult` requires `callId` and `output`, and optionally accepts `status: 'success' | 'failed' | 'cancelled'` and `message`. Empty output is valid. `fail(error, { requestId })` or `fail(error, { callId })` locates a terminal error; `fail(error)` records only a Trace error. For a recoverable failed model attempt, record its final failed response (including usage if supplied), then record a fresh request for the retry.
+
+`end()` publishes `trace.end`. `end('cancelled')` explicitly records Trace cancellation. `fail(error)` publishes `trace.error` with `{ message }`, using `error.message` for an `Error`. Both are terminal: further record calls return `TRACE_ENDED`. Repeating either method is harmless and returns success without another event.
 
 ### `RecordResult`
 
@@ -150,12 +156,13 @@ const message = {
     sequence: 1,
     timestamp: '2026-01-01T00:00:00.000Z',
     type: 'model.request',
+    requestId: 'request-1',
     payload: { model: 'gpt-4.1' },
   },
 }
 ```
 
-`trace.start` and `trace.end` have no payload. Model events contain the supplied JSON object. `tool.result` contains `{ callId, output }`; an error contains `{ message }`.
+`trace.start` and `trace.end` have no payload. Model events contain the supplied JSON object. `tool.result` contains `{ callId, output }` plus optional status/message; an error contains `{ message }` and at most one optional requestId/callId target.
 
 Messages are sent individually with:
 

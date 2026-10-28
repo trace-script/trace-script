@@ -2,6 +2,7 @@
 import type { AgentWorkOverviewItem, AgentWorkStatus } from '@trace-script/vue-components'
 import { createTraceSdk } from '@trace-script/sdk'
 import { AGENT_WORK_STATUS, AgentWorkOverview } from '@trace-script/vue-components'
+import { promiseTimeout, useAsyncState } from '@vueuse/core'
 import { computed, shallowRef } from 'vue'
 
 interface WeatherTool {
@@ -52,9 +53,7 @@ enum StressWorkStatusIndex {
 const sdk = createTraceSdk()
 const city = shallowRef('北京')
 const sentCount = shallowRef(0)
-const running = shallowRef(false)
 const status = shallowRef('还没有运行 Trace')
-const answer = shallowRef('')
 const activeTab = shallowRef<'overview' | 'payload'>('overview')
 const timeline = shallowRef<TimelineItem[]>([
   { label: '用户输入', detail: '等待运行', type: 'input', state: 'idle' },
@@ -75,6 +74,12 @@ const overviewItems: AgentWorkOverviewItem[] = [
   { id: 'cleanup', name: 'Discard stale context', group: 'Agent', startTime: 1480, duration: 160, status: AGENT_WORK_STATUS.CANCELLED },
 ]
 const stressOverviewItems = createStressOverviewItems(2400)
+
+const { state: answer, isLoading: running, execute: executeWeather } = useAsyncState(
+  () => answerWeather(`请告诉我${city.value}的天气`),
+  '',
+  { immediate: false, throwError: true },
+)
 
 const buttonLabel = computed(() => running.value ? '运行中' : '运行 Agent')
 const runCountLabel = computed(() => sentCount.value === 0 ? '尚未运行' : `${sentCount.value} 次运行`)
@@ -142,10 +147,6 @@ function createStressOverviewItems(count: number): AgentWorkOverviewItem[] {
   }))
 }
 
-function wait(milliseconds: number): Promise<void> {
-  return new Promise(resolve => window.setTimeout(resolve, milliseconds))
-}
-
 function setTimeline(index: number, state: TimelineItem['state'], detail: string): void {
   timeline.value = timeline.value.map((item, itemIndex) => {
     const isCurrentStep = itemIndex === index
@@ -177,7 +178,7 @@ function timelineStepLabel(item: TimelineItem, index: number): string | number {
 }
 
 async function responsesCreate(request: ModelRequest): Promise<ModelResponse> {
-  await wait(420)
+  await promiseTimeout(420)
   const toolResult = request.input.find((item): item is FunctionCallOutput => 'type' in item && item.type === 'function_call_output')
   if (!toolResult) {
     const firstInput = request.input[0]
@@ -210,7 +211,7 @@ async function responsesCreate(request: ModelRequest): Promise<ModelResponse> {
 }
 
 async function getWeather(requestedCity: string): Promise<WeatherData> {
-  await wait(520)
+  await promiseTimeout(520)
   return { city: requestedCity, condition: '晴', temperature: 22 }
 }
 
@@ -235,7 +236,7 @@ async function answerWeather(userText: string): Promise<string> {
     setTimeline(1, 'active', '等待模型决定下一步')
     const firstResponse = await responsesCreate(firstRequest)
     lastResponse.value = firstResponse
-    const responseResult = trace.recordResponse(firstResponse)
+    const responseResult = trace.recordResponse(requestResult.requestId, firstResponse)
     if (!responseResult.success)
       throw new Error(`记录模型响应失败：${responseResult.reason}`)
     const call = firstResponse.output.find((item): item is FunctionCall => item.type === 'function_call')
@@ -268,7 +269,7 @@ async function answerWeather(userText: string): Promise<string> {
     setTimeline(3, 'active', '生成最终 output_text')
     const secondResponse = await responsesCreate(secondRequest)
     lastResponse.value = secondResponse
-    const secondResponseResult = trace.recordResponse(secondResponse)
+    const secondResponseResult = trace.recordResponse(secondRequestResult.requestId, secondResponse)
     if (!secondResponseResult.success)
       throw new Error(`记录模型响应失败：${secondResponseResult.reason}`)
     const endResult = trace.end()
@@ -286,23 +287,18 @@ async function answerWeather(userText: string): Promise<string> {
 async function runWeatherAgent() {
   if (running.value)
     return
-  running.value = true
-  answer.value = ''
   status.value = '正在运行 Responses 流程…'
   timeline.value = timeline.value.map((item) => {
     const state = item.type === 'input' ? 'active' : 'idle'
     return { ...item, state }
   })
   try {
-    answer.value = await answerWeather(`请告诉我${city.value}的天气`)
+    await executeWeather()
     sentCount.value++
     status.value = 'Trace 已完成'
   }
   catch (error) {
     status.value = `运行失败：${error instanceof Error ? error.message : '未知错误'}`
-  }
-  finally {
-    running.value = false
   }
 }
 </script>

@@ -6,13 +6,22 @@ export type RecordResult
   = | { success: true }
     | { success: false, reason: ProtocolIssue['code'] | 'DELIVERY_FAILED' | 'TRACE_ENDED' }
 
+export type RequestRecordResult = RecordResult & { requestId: string }
+export type ErrorTarget = { requestId: string } | { callId: string }
+export interface ToolResult {
+  callId: string
+  output: string
+  status?: 'success' | 'failed' | 'cancelled'
+  message?: string
+}
+
 export interface TraceHandle {
   readonly traceId: string
-  recordRequest: (request: object) => RecordResult
-  recordResponse: (response: object) => RecordResult
-  recordToolResult: (result: { callId: string, output: string }) => RecordResult
-  end: () => RecordResult
-  fail: (error: Error | string) => RecordResult
+  recordRequest: (request: object) => RequestRecordResult
+  recordResponse: (requestId: string, response: object) => RecordResult
+  recordToolResult: (result: ToolResult) => RecordResult
+  end: (status?: 'cancelled') => RecordResult
+  fail: (error: Error | string, target?: ErrorTarget) => RecordResult
 }
 
 let fallbackCounter = 0
@@ -58,28 +67,30 @@ export function createTraceSdk(): { startTrace: () => TraceHandle } {
 
       return {
         traceId,
-        recordRequest(request: object) {
-          return record({ type: TRACE_EVENT_TYPE.MODEL_REQUEST, payload: request })
+        recordRequest(request: object): RequestRecordResult {
+          const requestId = createId()
+          const result = record({ type: TRACE_EVENT_TYPE.MODEL_REQUEST, requestId, payload: request })
+          return { ...result, requestId }
         },
-        recordResponse(response: object) {
-          return record({ type: TRACE_EVENT_TYPE.MODEL_RESPONSE, payload: response })
+        recordResponse(requestId: string, response: object) {
+          return record({ type: TRACE_EVENT_TYPE.MODEL_RESPONSE, requestId, payload: response })
         },
-        recordToolResult(result: { callId: string, output: string }) {
+        recordToolResult(result: ToolResult) {
           return record({ type: TRACE_EVENT_TYPE.TOOL_RESULT, payload: result })
         },
-        end() {
+        end(status?: 'cancelled') {
           if (ended)
             return { success: true }
-          const result = record({ type: TRACE_EVENT_TYPE.TRACE_END })
+          const result = record({ type: TRACE_EVENT_TYPE.TRACE_END, ...(status ? { status } : {}) })
           if (result.success)
             ended = true
           return result
         },
-        fail(error: Error | string) {
+        fail(error: Error | string, target?: ErrorTarget) {
           if (ended)
             return { success: true }
           const message = error instanceof Error ? error.message : error
-          const result = record({ type: TRACE_EVENT_TYPE.TRACE_ERROR, payload: { message } })
+          const result = record({ type: TRACE_EVENT_TYPE.TRACE_ERROR, payload: { message, ...target } })
           if (result.success)
             ended = true
           return result

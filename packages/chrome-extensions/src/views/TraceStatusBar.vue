@@ -1,25 +1,18 @@
 <script setup lang="ts">
-import { formatDuration } from '@/utils/ui-model'
+import type { UsageSummary } from '@trace-script/core'
+import { amountText } from '@/utils/ui-model'
 
-defineProps<{ connected: boolean, eventCount: number, visibleCount: number, totalTokens: number, visibleTokens: number, failedCount: number, maxDuration: number, totalDuration: number }>()
-
-const statusItemClass = 'inline-flex items-center gap-1 whitespace-nowrap border-r border-divider px-2.5'
+defineProps<{ connected: boolean, traceCount: number, callCount: number, visibleCount: number, totalUsage: UsageSummary, visibleUsage: UsageSummary, failedCount: number, failedTraceCount: number }>()
+const itemClass = 'border-r border-divider px-2.5'
 </script>
 
 <template>
-  <footer class="flex items-center border-t border-divider bg-panel-raised py-1 text-sm text-panel-muted" aria-label="Trace summary">
-    <span class="gap-0 text-panel-text" :class="statusItemClass">
-      <i class="mr-2 block size-2 rounded-full" :class="connected ? 'bg-success' : 'bg-danger'" />
-      {{ connected ? 'Connected' : 'Disconnected' }}
-    </span>
-    <span :class="statusItemClass"><strong>{{ eventCount }}</strong> events</span>
-    <span :class="statusItemClass"><strong>{{ visibleCount }}</strong> visible</span>
-    <span :class="statusItemClass"><strong>{{ totalTokens }}</strong> tokens</span>
-    <span :class="statusItemClass"><strong>{{ visibleTokens }}</strong> visible tokens</span>
-    <span :class="[statusItemClass, failedCount ? 'text-danger' : '']"><strong>{{ failedCount }}</strong> failed</span>
-    <span :class="statusItemClass">Max duration: <strong>{{ formatDuration(maxDuration) }}</strong></span>
-    <span :class="statusItemClass">Total duration: <strong>{{ formatDuration(totalDuration) }}</strong></span>
-    <span class="flex-1" />
-    <span class="inline-flex items-center gap-1 whitespace-nowrap px-2.5 text-[#70757a]">↑↓ Navigate</span>
+  <footer class="flex shrink-0 flex-wrap gap-y-1 border-t border-divider bg-panel-raised py-1 text-xs text-panel-muted" aria-label="Call summary">
+    <span :class="itemClass">{{ connected ? 'Connected' : 'Disconnected' }}</span>
+    <span :class="itemClass">{{ traceCount }} traces · {{ callCount }} calls · {{ visibleCount }} matched</span>
+    <span :class="itemClass">All model tokens — In: {{ amountText(totalUsage.input) }} · Out: {{ amountText(totalUsage.output) }} · Total: {{ amountText(totalUsage.total) }}</span>
+    <span :class="itemClass">Matched model tokens — In: {{ amountText(visibleUsage.input) }} · Out: {{ amountText(visibleUsage.output) }} · Total: {{ amountText(visibleUsage.total) }}</span>
+    <span :class="[itemClass, { 'text-danger': failedCount || failedTraceCount }]">{{ failedCount }} failed calls · {{ failedTraceCount }} failed or conflicting traces</span>
+    <span class="ml-auto px-2.5">↑↓ Navigate</span>
   </footer>
 </template>
