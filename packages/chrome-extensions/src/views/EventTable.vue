@@ -7,7 +7,7 @@ const props = defineProps<{ calls: CallRecord[], traces: TraceSummary[], selecte
 const emit = defineEmits<{ select: [id: string] }>()
 const columns = ['TraceID', 'Name', 'Agent', 'Duration', 'Type', 'Status', 'Model', 'Tokens']
 const rows = computed(() => props.calls.map(call => ({ call, trace: props.traces.find(trace => trace.traceId === call.traceId) })))
-const issues = computed(() => props.traces.filter(trace => trace.status === 'failed' || trace.status === 'conflict'))
+const issues = computed(() => props.traces.filter(trace => (trace.status === 'failed' || trace.status === 'conflict') && !props.calls.some(call => call.traceId === trace.traceId)))
 </script>
 
 <template>
@@ -72,8 +72,10 @@ const issues = computed(() => props.traces.filter(trace => trace.status === 'fai
         </tr>
       </tbody>
     </table>
-    <div v-if="!calls.length" class="grid min-h-20 place-items-center gap-2 p-3 text-center text-panel-muted">
-      <p>No calls match these filters</p>
+    <div v-if="!calls.length || issues.length" class="grid min-h-20 place-items-center gap-2 p-3 text-center text-panel-muted">
+      <p v-if="!calls.length">
+        No calls match these filters
+      </p>
       <button
         v-for="trace in issues"
         :key="trace.id"

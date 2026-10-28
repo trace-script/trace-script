@@ -147,6 +147,42 @@ describe('trace panel state', () => {
     }
   })
 
+  it.each([false, true])('keeps call-less failures and conflicts inspectable alongside call rows, only errors: %s', async (onlyErrors) => {
+    const listeners: ((message: WorkerToPanelMessage) => void)[] = []
+    const port = { onMessage: { addListener: (listener: (message: WorkerToPanelMessage) => void) => listeners.push(listener), removeListener: vi.fn() }, postMessage: vi.fn(), disconnect: vi.fn() }
+    vi.stubGlobal('chrome', { devtools: { inspectedWindow: { tabId: 1 } }, runtime: { connect: () => port } })
+    const wrapper = mount(App)
+    try {
+      const events: TraceEventEnvelope[] = [
+        event,
+        { ...event, eventId: 'error', sequence: 2, type: 'trace.error', payload: { message: 'failure before calls' } },
+        { ...event, eventId: 'call-request', traceId: 'with-call', type: 'model.request', requestId: 'r', payload: { input: 'question' } },
+        { ...event, eventId: 'call-error', traceId: 'with-call', sequence: 2, type: 'trace.error', payload: { message: 'failure with a call' } },
+        { ...event, eventId: 'end', traceId: 'conflicting', type: 'trace.end' },
+        { ...event, eventId: 'cancel', traceId: 'conflicting', sequence: 2, type: 'trace.end', status: 'cancelled' },
+      ]
+      listeners[0]!({ type: EXTENSION_MESSAGE_TYPE.TRACE_QUERY_RESULT, events })
+      await nextTick()
+      if (onlyErrors)
+        await wrapper.findAll('button').find(button => button.text() === 'Only errors')!.trigger('click')
+
+      expect(wrapper.findAll('.event-row')).toHaveLength(1)
+      expect(wrapper.find('[aria-label="Trace calls"]').text()).not.toContain('No calls match these filters')
+      const links = wrapper.findAll('.trace-issue-link')
+      expect(links).toHaveLength(2)
+      const failed = links.find(link => link.text().includes('failure before calls'))!
+      await failed.trigger('click')
+      expect(wrapper.find('.details-content').text()).toContain('failure before calls')
+      const conflicting = links.find(link => link.text().includes('Conflicting Trace terminal events'))!
+      await conflicting.trigger('click')
+      expect(wrapper.find('.details-content').text()).toContain('Conflicting Trace terminal events')
+    }
+    finally {
+      wrapper.unmount()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('loads a query snapshot even when recording is paused', () => {
     const PanelState = defineComponent({
       setup() {
