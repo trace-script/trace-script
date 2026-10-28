@@ -598,6 +598,31 @@ describe('aggregate helpers', () => {
         expect(call.output).toBe(JSON.stringify(responseEvent.payload, null, 2))
       })
 
+      it('preserves request metadata while filling only missing response metadata', () => {
+        const input = event(1, 'model.request', { model: 'request-model', name: 'Request name' })
+        const output = response(2, 'r', { model: 'response-model', agent: 'responder', name: 'Response name' })
+        const call = modelCall('trace', 'r', [input, output])
+        expect(call).toMatchObject({ model: 'request-model', agent: 'responder', name: 'Request name', status: 'success' })
+      })
+
+      it('names an orphan response from its own metadata without assuming success', () => {
+        const output = response(2, 'r', { model: 'response-model', agent: 'responder', name: 'Response name' })
+        const call = modelCall('trace', 'r', [output])
+        expect(call).toMatchObject({ model: 'response-model', agent: 'responder', name: 'Response name', status: 'unknown' })
+        expect(call.input).toBeUndefined()
+        expect(call.issues).toContain('Input missing')
+      })
+
+      it('retains response errors and excludes array usage from accounting', () => {
+        const output = response(2, 'r', { status: 'completed', error: { message: 'failed' }, usage: [10, 20] })
+        const call = modelCall('trace', 'r', [requestEvent, output])
+        expect(call.status).toBe('failed')
+        expect(call.errors).toEqual([JSON.stringify({ message: 'failed' }, null, 2)])
+        expect(call.tokens).toEqual({})
+        expect(call.usage).toBeUndefined()
+        expect(call.usageEventId).toBeUndefined()
+      })
+
       it('retains the first response and diagnoses multiple final responses', () => {
         const call = modelCall('trace', 'r', [requestEvent, responseEvent, { ...responseEvent, eventId: 'second' }])
         expect(call.associationConflict).toBeTruthy()
@@ -645,6 +670,25 @@ describe('aggregate helpers', () => {
           associationConflict: true,
           parentId: model.id,
         })
+      })
+
+      it('preserves an empty first result and ignores later status, error and timing', () => {
+        const first = event(3, 'tool.result', { callId: 'tool-1', output: '', status: 'cancelled', message: 'cancelled' })
+        const second = event(4, 'tool.result', { callId: 'tool-1', output: 'late', status: 'failed', message: 'late error' })
+        const call = fixture(collectToolCalls('trace', [first, second], []))
+        expect(call).toMatchObject({ output: '', status: 'cancelled', errors: ['cancelled'], associationConflict: true })
+        expect(call.events).toEqual([first, second])
+        expect(call.timing.end).toBe(first.timestamp)
+      })
+
+      it('selects declarations by response order rather than model array order', () => {
+        const first = modelCall('trace', 'first', [response(2, 'first', { output: [toolCall] })])
+        const second = modelCall('trace', 'second', [response(3, 'second', { output: [{ ...toolCall, arguments: 'late' }] })])
+        const call = fixture(collectToolCalls('trace', [], [second, first]))
+        expect(call.input).toBe(toolCall.arguments)
+        expect(call.parentId).toBe(first.id)
+        expect(call.associationConflict).toBeTruthy()
+        expect(call.events).toEqual([...first.events, ...second.events])
       })
 
       it('retains orphan results without inventing success', () => {
@@ -712,6 +756,39 @@ describe('aggregate helpers', () => {
         expect(tool.tokens).toEqual({})
         expect(tool.timing.duration).toBeUndefined()
         expect(tool.timing.end).toBe(responseEvent.timestamp)
+      })
+
+      it('keeps completed and explicitly failed calls unchanged when the trace fails', () => {
+        const completed = emptyCall('trace', 'tool', 'completed')
+        completed.output = ''
+        completed.status = 'success'
+        const failed = emptyCall('trace', 'model', 'failed')
+        failed.status = 'failed'
+        const pending = emptyCall('trace', 'model', 'pending')
+        const trace = createTraceSummary('trace', [event(4, 'trace.error', { message: 'trace failed' })], [], [completed, failed, pending])
+        finalizeCalls(trace)
+        expect(completed.status).toBe('success')
+        expect(failed.status).toBe('failed')
+        expect(completed.issues).toEqual([])
+        expect(failed.issues).toEqual([])
+        expect(pending.status).toBe('interrupted')
+        expect(pending.issues).toContain('Interrupted; specific cause not located')
+      })
+
+      it('cancels unresolved calls only after an explicit cancelled terminal', () => {
+        const call = emptyCall('trace', 'model', 'r')
+        const trace = createTraceSummary('trace', [event(3, 'trace.end', {}, { status: 'cancelled' })], [], [call])
+        finalizeCalls(trace)
+        expect(call.status).toBe('cancelled')
+        expect(call.issues).toEqual([])
+      })
+
+      it('leaves a call running when no terminal has arrived', () => {
+        const call = emptyCall('trace', 'model', 'r')
+        const trace = createTraceSummary('trace', [event(1, 'trace.start')], [], [call])
+        finalizeCalls(trace)
+        expect(call.status).toBe('running')
+        expect(call.issues).toEqual([])
       })
 
       it('marks unresolved calls incomplete after a normal terminal', () => {

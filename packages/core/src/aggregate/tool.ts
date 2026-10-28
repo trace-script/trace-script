@@ -40,7 +40,26 @@ export function addToolDeclaration(tools: Map<string, CallRecord>, traceId: stri
   tools.set(item.call_id, tool)
 }
 
-export function collectToolCalls(traceId: string, events: readonly TraceEventEnvelope[], models: readonly CallRecord[]): CallRecord[] {
+function applyToolResult(tools: Map<string, CallRecord>, traceId: string, event: Extract<TraceEventEnvelope, { type: 'tool.result' }>): void {
+  let tool = tools.get(event.payload.callId)
+  if (!tool) {
+    tool = emptyCall(traceId, 'tool', event.payload.callId)
+    tool.issues.push('Input missing: tool declaration not recorded')
+    tools.set(event.payload.callId, tool)
+  }
+  tool.events.push(event)
+  if (!isUndefined(tool.output)) {
+    conflict(tool, 'Multiple tool results: association conflict')
+    return
+  }
+  tool.output = event.payload.output
+  tool.status = event.payload.status ?? (isUndefined(tool.declaration) ? 'unknown' : 'success')
+  if (event.payload.message)
+    tool.errors.push(event.payload.message)
+  tool.timing = callTiming(tool.timing.start, event.timestamp)
+}
+
+function collectToolDeclarations(traceId: string, models: readonly CallRecord[]): Map<string, CallRecord> {
   const tools = new Map<string, CallRecord>()
   const modelResponses = models.flatMap((model) => {
     const response = model.events.find(event => event.type === 'model.response')
@@ -55,25 +74,15 @@ export function collectToolCalls(traceId: string, events: readonly TraceEventEnv
       addToolDeclaration(tools, traceId, model, response, item)
     }
   }
+  return tools
+}
+
+export function collectToolCalls(traceId: string, events: readonly TraceEventEnvelope[], models: readonly CallRecord[]): CallRecord[] {
+  const tools = collectToolDeclarations(traceId, models)
   for (const event of events) {
     if (event.type !== 'tool.result')
       continue
-    let tool = tools.get(event.payload.callId)
-    if (!tool) {
-      tool = emptyCall(traceId, 'tool', event.payload.callId)
-      tool.issues.push('Input missing: tool declaration not recorded')
-      tools.set(event.payload.callId, tool)
-    }
-    tool.events.push(event)
-    if (!isUndefined(tool.output)) {
-      conflict(tool, 'Multiple tool results: association conflict')
-      continue
-    }
-    tool.output = event.payload.output
-    tool.status = event.payload.status ?? (isUndefined(tool.declaration) ? 'unknown' : 'success')
-    if (event.payload.message)
-      tool.errors.push(event.payload.message)
-    tool.timing = callTiming(tool.timing.start, event.timestamp)
+    applyToolResult(tools, traceId, event)
   }
   return [...tools.values()]
 }
