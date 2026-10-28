@@ -4,6 +4,4 @@
 
 See [the stage 2 design](../../docs/02-trace-protocol-and-sdk.md) for event shapes and application responsibilities.
 
-`aggregateEvents(events)` derives `TraceSummary` and model/tool `CallRecord` values from validated raw events. Calls retain full inputs, outputs, source events, conflicts, status, observed timing, and final response usage. Explicit request IDs support concurrent calls; unlabelled events use conservative legacy pairing.
-
-Only model responses contribute tokens. Missing totals can be derived from valid input/output amounts; invalid reported totals remain unknown. `sumUsage` marks incomplete metrics rather than treating unknown usage as zero.
+`aggregateEvents(events)` groups validated events into traces and model/tool calls with status, timing, and usage. `sumUsage(calls)` summarizes token usage without treating missing values as zero.
