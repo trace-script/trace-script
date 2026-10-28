@@ -1,5 +1,6 @@
 import type { TraceBridgeMessage } from '@trace-script/metadata'
 import type { TraceHandle } from '@/index'
+import { isUndefined } from '@trace-script/shared'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createTraceSdk } from '@/index'
 
@@ -151,7 +152,7 @@ describe('trace SDK lifecycle', () => {
 
 function fixture<T>(items: readonly T[] = [], index = 0): T {
   const value = items[index]
-  if (value === undefined)
+  if (isUndefined(value))
     throw new Error(`Expected fixture item ${index}`)
   return value
 }

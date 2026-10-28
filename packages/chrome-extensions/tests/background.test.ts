@@ -2,6 +2,7 @@ import type { TraceBridgeMessage } from '@trace-script/metadata'
 import { aggregateEvents } from '@trace-script/core'
 import { traceEventEnvelopeSchema } from '@trace-script/metadata'
 import { createTraceSdk } from '@trace-script/sdk'
+import { isNumber } from '@trace-script/shared'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 interface FakePort {
@@ -19,7 +20,7 @@ function createPort(name: string, tabId?: number): { port: chrome.runtime.Port, 
   const received: object[] = []
   const fake: FakePort = {
     name,
-    sender: typeof tabId === 'number' ? { tab: { id: tabId } } : undefined,
+    sender: isNumber(tabId) ? { tab: { id: tabId } } : undefined,
     postMessage: message => received.push(message),
     onMessage: { addListener: next => listener = next },
     onDisconnect: { addListener: () => {} },

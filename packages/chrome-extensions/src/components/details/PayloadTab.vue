@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { TraceRecord } from '@trace-script/core'
+import { isUndefined } from '@trace-script/shared'
 import { computed } from 'vue'
 
 const props = defineProps<{ record: TraceRecord }>()
@@ -31,7 +32,7 @@ const outputHint = computed(() => {
       <h3 class="details-section-label">
         {{ record.kind === 'model' ? 'Request' : `Arguments · ${record.name}` }}
       </h3>
-      <pre v-if="record.input !== undefined" class="details-code">{{ record.input }}</pre>
+      <pre v-if="!isUndefined(record.input)" class="details-code">{{ record.input }}</pre>
       <p v-else class="missing-hint">
         Input missing {{ record.kind === 'tool' && record.declaration ? ': arguments not recorded' : '' }} .
       </p>
@@ -43,7 +44,7 @@ const outputHint = computed(() => {
         {{ record.kind === 'model' ? 'Response' : 'Result' }}
       </h3>
       <pre
-        v-if="record.output !== undefined"
+        v-if="!isUndefined(record.output)"
         class="details-code"
         :aria-label="record.output === '' ? 'Valid empty result' : 'Output'"
       >{{ record.output === '' ? '"" (valid empty result)' : record.output }}</pre>

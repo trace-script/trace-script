@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { TraceRecord } from '@trace-script/core'
+import { isUndefined } from '@trace-script/shared'
 import { computed } from 'vue'
 import { timingText } from '@/utils/ui-model'
 
@@ -41,7 +42,7 @@ const fields = computed(() => {
     <p v-else>
       Trace interval from start to end or error, including parallel work and waits. Call durations are never summed to replace this interval.
     </p>
-    <p v-if="record.timing.duration === undefined && !record.timing.anomalous">
+    <p v-if="isUndefined(record.timing.duration) && !record.timing.anomalous">
       Both endpoints are required for a final interval. Waiting calls do not have a final duration of zero.
     </p>
   </div>

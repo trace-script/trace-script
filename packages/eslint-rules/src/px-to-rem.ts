@@ -1,4 +1,5 @@
 import type { Rule } from './index'
+import { isNumber } from '@trace-script/shared'
 import { createSimplePlugin } from 'eslint-factory'
 
 const dimensionPattern = /[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?px(?![-\w])/iy
@@ -80,7 +81,7 @@ function findPxDimensions(text: string): Array<{ start: number, end: number, rep
       if (match) {
         const pixelValue = Number.parseFloat(match[0].slice(0, -2))
         const value = pixelValue / 16
-        if (Number.isFinite(value) && Math.abs(pixelValue) >= IgnoreSize) {
+        if (isNumber(value) && Math.abs(pixelValue) >= IgnoreSize) {
           dimensions.push({
             start: index,
             end: index + match[0].length,

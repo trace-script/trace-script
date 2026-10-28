@@ -242,6 +242,9 @@ importers:
       '@trace-script/metadata':
         specifier: workspace:*
         version: link:../metadata
+      '@trace-script/shared':
+        specifier: workspace:*
+        version: link:../shared
       zod:
         specifier: catalog:validation
         version: 4.6.5
@@ -258,6 +261,9 @@ importers:
 
   packages/eslint-rules:
     dependencies:
+      '@trace-script/shared':
+        specifier: workspace:*
+        version: link:../shared
       eslint-factory:
         specifier: catalog:lint
         version: 0.1.2(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)

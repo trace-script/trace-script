@@ -1,4 +1,5 @@
 import type { TraceEventEnvelope } from '@trace-script/metadata'
+import { isArray, isNumber, isObject, isString, isUndefined } from '@trace-script/shared'
 
 export type CallStatus = 'running' | 'waiting' | 'success' | 'failed' | 'cancelled' | 'incomplete' | 'interrupted' | 'unknown'
 export type TraceStatus = 'running' | 'success' | 'failed' | 'cancelled' | 'conflict'
@@ -78,8 +79,8 @@ export function compareEvents(a: TraceEventEnvelope, b: TraceEventEnvelope): num
 function eventContent(event: TraceEventEnvelope): string {
   // Object key order is not part of JSON event identity.
   return JSON.stringify(event, (_, value) => {
-    if (value && typeof value === 'object' && !Array.isArray(value))
-      return Object.fromEntries(Object.keys(value).sort().map(key => [key, value[key]]))
+    if (isObject(value) && !isArray(value))
+      return Object.fromEntries(Object.entries(value).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0))
     return value
   })
 }
@@ -88,29 +89,29 @@ export function callTiming(start?: string, end?: string): Timing {
   if (!start || !end)
     return { start, end, anomalous: false }
   const duration = Date.parse(end) - Date.parse(start)
-  if (!Number.isFinite(duration) || duration < 0)
+  if (!isNumber(duration) || duration < 0)
     return { start, end, anomalous: true }
   return { start, end, duration, anomalous: false }
 }
 
 function validToken(value: number): boolean {
-  return Number.isFinite(value) && Number.isInteger(value) && value >= 0
+  return Number.isInteger(value) && value >= 0
 }
 
 function responseTokens(event: Extract<TraceEventEnvelope, { type: 'model.response' }>): Tokens {
   const usage = event.payload.usage
-  if (!usage || typeof usage !== 'object' || Array.isArray(usage))
+  if (!isObject(usage) || isArray(usage))
     return {}
   const input = 'input_tokens' in usage ? usage.input_tokens : usage.prompt_tokens
   const output = 'output_tokens' in usage ? usage.output_tokens : usage.completion_tokens
   const result: Tokens = {}
-  if (typeof input === 'number' && validToken(input))
+  if (isNumber(input) && validToken(input))
     result.input = input
-  if (typeof output === 'number' && validToken(output))
+  if (isNumber(output) && validToken(output))
     result.output = output
-  if (typeof usage.total_tokens === 'number' && validToken(usage.total_tokens))
+  if (isNumber(usage.total_tokens) && validToken(usage.total_tokens))
     result.total = usage.total_tokens
-  else if (!('total_tokens' in usage) && result.input !== undefined && result.output !== undefined && validToken(result.input + result.output))
+  else if (!('total_tokens' in usage) && !isUndefined(result.input) && !isUndefined(result.output) && validToken(result.input + result.output))
     result.total = result.input + result.output
   return result
 }
@@ -120,7 +121,7 @@ export function sumUsage(calls: readonly CallRecord[]): UsageSummary {
   function sum(key: keyof Tokens): TokenAmount {
     const values = models.flatMap((call) => {
       const value = call.tokens[key]
-      return value === undefined ? [] : [value]
+      return isUndefined(value) ? [] : [value]
     })
     const value = values.reduce((total, value) => total + value, 0)
     if (!values.length || !validToken(value))
@@ -132,9 +133,9 @@ export function sumUsage(calls: readonly CallRecord[]): UsageSummary {
 
 function modelMetadata(event: Extract<TraceEventEnvelope, { type: 'model.request' | 'model.response' }>, key: 'name' | 'model' | 'agent'): string {
   const trace = event.payload.trace
-  const nested = trace && typeof trace === 'object' && !Array.isArray(trace) ? trace[key] : undefined
+  const nested = isObject(trace) && !isArray(trace) ? trace[key] : undefined
   const value = nested ?? event.payload[key]
-  return typeof value === 'string' ? value : ''
+  return isString(value) ? value : ''
 }
 
 function responseStatus(event: Extract<TraceEventEnvelope, { type: 'model.response' }>): CallStatus {
@@ -206,7 +207,7 @@ function modelCall(traceId: string, key: string, sources: TraceEventEnvelope[], 
     if (response.payload.error)
       call.errors.push(JSON.stringify(response.payload.error, null, 2))
     const usage = response.payload.usage
-    if (usage && typeof usage === 'object' && !Array.isArray(usage)) {
+    if (isObject(usage) && !isArray(usage)) {
       call.usage = JSON.stringify(usage, null, 2)
       call.usageEventId = response.eventId
     }
@@ -263,12 +264,12 @@ function aggregateTrace(traceId: string, events: TraceEventEnvelope[], conflicts
     return response?.type === 'model.response' ? [{ model, response }] : []
   }).sort((a, b) => compareEvents(a.response, b.response))
   for (const { model, response } of modelResponses) {
-    if (!Array.isArray(response.payload.output))
+    if (!isArray(response.payload.output))
       continue
     for (const item of response.payload.output) {
-      if (!item || typeof item !== 'object' || Array.isArray(item) || (item.type !== 'function_call' && item.type !== 'custom_tool_call'))
+      if (!isObject(item) || isArray(item) || (item.type !== 'function_call' && item.type !== 'custom_tool_call'))
         continue
-      if (typeof item.call_id !== 'string' || !item.call_id) {
+      if (!isString(item.call_id) || !item.call_id) {
         model.issues.push('Unassociated tool declaration: call_id missing (see complete Response)')
         continue
       }
@@ -280,10 +281,10 @@ function aggregateTrace(traceId: string, events: TraceEventEnvelope[], conflicts
         continue
       }
       const tool = emptyCall(traceId, 'tool', item.call_id)
-      tool.name = typeof item.name === 'string' && item.name ? item.name : 'Tool call'
+      tool.name = isString(item.name) && item.name ? item.name : 'Tool call'
       const argumentsValue = item.type === 'custom_tool_call' ? item.input : item.arguments
-      if (argumentsValue !== undefined)
-        tool.input = typeof argumentsValue === 'string' ? argumentsValue : JSON.stringify(argumentsValue, null, 2)
+      if (!isUndefined(argumentsValue))
+        tool.input = isString(argumentsValue) ? argumentsValue : JSON.stringify(argumentsValue, null, 2)
       else
         tool.issues.push('Arguments missing from tool declaration')
       tool.declaration = JSON.stringify(item, null, 2)
@@ -307,12 +308,12 @@ function aggregateTrace(traceId: string, events: TraceEventEnvelope[], conflicts
       tools.set(event.payload.callId, tool)
     }
     tool.events.push(event)
-    if (tool.output !== undefined) {
+    if (!isUndefined(tool.output)) {
       conflict(tool, 'Multiple tool results: association conflict')
       continue
     }
     tool.output = event.payload.output
-    tool.status = event.payload.status ?? (tool.declaration === undefined ? 'unknown' : 'success')
+    tool.status = event.payload.status ?? (isUndefined(tool.declaration) ? 'unknown' : 'success')
     if (event.payload.message)
       tool.errors.push(event.payload.message)
     tool.timing = callTiming(tool.timing.start, event.timestamp)
@@ -388,7 +389,7 @@ function aggregateTrace(traceId: string, events: TraceEventEnvelope[], conflicts
       call.tokens = {}
       call.timing = { start: call.timing.start, end: call.timing.end, anomalous: call.timing.anomalous }
     }
-    if (call.output === undefined && call.status !== 'failed') {
+    if (isUndefined(call.output) && call.status !== 'failed') {
       if (trace.status === 'failed') {
         call.status = 'interrupted'
         call.issues.push('Interrupted; specific cause not located')

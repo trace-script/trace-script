@@ -1,4 +1,5 @@
 import type { TraceEventEnvelope, TraceEventType } from '@trace-script/metadata'
+import { isUndefined } from '@trace-script/shared'
 import { describe, expect, it } from 'vitest'
 import { aggregateEvents, parseTraceEvent } from '@/index'
 
@@ -222,7 +223,7 @@ describe('call aggregation acceptance', () => {
   it('keeps orphan outputs, marks state unknown unless explicitly reported, and lacks timing', () => {
     const trace = singleTrace([response(1, 'a', { output_text: 'orphan' }), event(2, 'tool.result', { callId: 'tool-1', output: '' }), response(3, 'b', { status: 'completed' })])
     expect(trace.calls.map(call => call.status)).toEqual(['unknown', 'unknown', 'success'])
-    expect(trace.calls.every(call => call.input === undefined && call.timing.duration === undefined)).toBeTruthy()
+    expect(trace.calls.every(call => isUndefined(call.input) && isUndefined(call.timing.duration))).toBeTruthy()
     expect(fixture(trace.calls, 1).output).toBe('')
   })
 
@@ -373,7 +374,7 @@ describe('call aggregation acceptance', () => {
 
 function fixture<T>(items: readonly T[], index = 0): T {
   const value = items[index]
-  if (value === undefined)
+  if (isUndefined(value))
     throw new Error(`Expected fixture item ${index}`)
   return value
 }

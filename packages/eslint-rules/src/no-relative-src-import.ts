@@ -1,6 +1,7 @@
 import type { Rule } from './index'
 import { existsSync } from 'node:fs'
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { isString, isUndefined } from '@trace-script/shared'
 import { createSimplePlugin } from 'eslint-factory'
 
 const importExistsCache = new Map<string, boolean>()
@@ -36,7 +37,7 @@ function getImportCandidates(target: string): Array<string> {
 
 function importExists(target: string): boolean {
   const cached = importExistsCache.get(target)
-  if (cached !== undefined)
+  if (!isUndefined(cached))
     return cached
 
   const exists = getImportCandidates(target).some(candidate => existsSync(candidate))
@@ -77,11 +78,11 @@ export const noRelativeSrcImport: Rule = createSimplePlugin({
     return {
       ImportDeclaration(node) {
         const source = node.source.value
-        if (typeof source !== 'string' || !source.startsWith('../'))
+        if (!isString(source) || !source.startsWith('../'))
           return
 
         const filename = context.filename
-        if (typeof filename !== 'string' || filename === '')
+        if (!isString(filename) || filename === '')
           return
 
         const alias = resolveAlias(source, filename)

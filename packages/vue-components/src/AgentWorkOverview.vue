@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PropType } from 'vue'
 import type { AgentWorkOverviewItem, AgentWorkOverviewRange, AgentWorkOverviewTheme } from './model'
-import { formatMilliseconds } from '@trace-script/shared'
+import { formatMilliseconds, isUndefined } from '@trace-script/shared'
 import { onKeyStroke, useDevicePixelRatio, useFocus, useRafFn, useResizeObserver } from '@vueuse/core'
 import { computed, nextTick, reactive, shallowRef, useId, useTemplateRef, watch } from 'vue'
 import { createAgentWorkOverviewLayout, createAgentWorkOverviewTicks, findAgentWorkOverviewItem, niceTickStep } from './timeline'
@@ -90,7 +90,7 @@ const focusedLabel = computed(() => {
 const activeOptionId = `${instanceId}-option`
 
 function durationText(item: AgentWorkOverviewItem): string {
-  return item.durationLabel ?? (item.duration === undefined ? 'Duration unknown' : formatMilliseconds(Math.max(0, item.duration)))
+  return item.durationLabel ?? (isUndefined(item.duration) ? 'Duration unknown' : formatMilliseconds(Math.max(0, item.duration)))
 }
 
 const { resume: scheduleDraw } = useRafFn(drawOverview, { immediate: false, once: true })

@@ -1,5 +1,6 @@
 import type { CallRecord, Timing, TokenAmount, TraceSummary } from '@trace-script/core'
 import type { TracePanelFilter } from '@/types/trace-panel'
+import { formatMilliseconds, isUndefined } from '@trace-script/shared'
 
 export const TRACE_FILTER_VALUE = { ALL: 'all' } as const
 export const TRACE_STATUS = {
@@ -53,22 +54,18 @@ export function matchesTrace(trace: TraceSummary, filter: TracePanelFilter): boo
   return matchesQuery && matchesType && matchesStatus && matchesAgent && matchesErrorFilter
 }
 
-export function formatDuration(value: number): string {
-  return value < 1000 ? `${Math.round(value)}ms` : `${(value / 1000).toFixed(1)}s`
-}
-
 export function timingText(timing: Timing, running = false): string {
   if (timing.anomalous)
     return 'Time anomaly'
-  if (timing.duration !== undefined)
-    return formatDuration(timing.duration)
+  if (!isUndefined(timing.duration))
+    return formatMilliseconds(timing.duration).replace(' ', '')
   return running && timing.start ? 'Running' : '—'
 }
 
 export function tokenText(value?: number): string {
-  return value === undefined ? '—' : value.toLocaleString('en-US')
+  return isUndefined(value) ? '—' : value.toLocaleString('en-US')
 }
 
 export function amountText(amount: TokenAmount): string {
-  return `${tokenText(amount.value)}${amount.value !== undefined && !amount.complete ? ' (known; incomplete)' : ''}`
+  return `${tokenText(amount.value)}${!isUndefined(amount.value) && !amount.complete ? ' (known; incomplete)' : ''}`
 }
