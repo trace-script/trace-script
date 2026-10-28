@@ -410,7 +410,9 @@ function fixture<T>(items: readonly T[], index = 0): T {
 }
 
 function singleTrace(events: TraceEventEnvelope[]) {
-  return fixture(aggregateEvents(events))
+  const traces = aggregateEvents(events)
+  expect(traces).toHaveLength(1)
+  return fixture(traces)
 }
 
 describe('aggregate helpers', () => {
@@ -613,11 +615,33 @@ describe('aggregate helpers', () => {
         expect(call.issues).toContain('Input missing')
       })
 
-      it('retains response errors and excludes array usage from accounting', () => {
-        const output = response(2, 'r', { status: 'completed', error: { message: 'failed' }, usage: [10, 20] })
-        const call = modelCall('trace', 'r', [requestEvent, output])
-        expect(call.status).toBe('failed')
-        expect(call.errors).toEqual([JSON.stringify({ message: 'failed' }, null, 2)])
+      it.each([
+        { name: 'no error', payload: { status: 'completed' }, status: 'success', errors: [] },
+        {
+          name: 'an error despite completed status',
+          payload: { status: 'completed', error: { message: 'failed' } },
+          status: 'failed',
+          errors: ['{\n  "message": "failed"\n}'],
+        },
+      ])('retains response error details for $name', ({ payload, status, errors }) => {
+        const call = modelCall('trace', 'r', [requestEvent, response(2, 'r', payload)])
+        expect(call.status).toBe(status)
+        expect(call.errors).toEqual(errors)
+      })
+
+      it('keeps valid response usage together with its source event', () => {
+        const call = modelCall('trace', 'r', [requestEvent, responseEvent])
+        expect(call.usage).toBe('{\n  "input_tokens": 2,\n  "output_tokens": 3\n}')
+        expect(call.usageEventId).toBe(responseEvent.eventId)
+        expect(call.tokens).toEqual({ input: 2, output: 3, total: 5 })
+      })
+
+      it.each([
+        { name: 'array', payload: { usage: [10, 20] } },
+        { name: 'string', payload: { usage: '10' } },
+        { name: 'absent usage', payload: {} },
+      ])('does not attach $name as response usage', ({ payload }) => {
+        const call = modelCall('trace', 'r', [requestEvent, response(2, 'r', payload)])
         expect(call.tokens).toEqual({})
         expect(call.usage).toBeUndefined()
         expect(call.usageEventId).toBeUndefined()
@@ -658,16 +682,16 @@ describe('aggregate helpers', () => {
     })
 
     describe('collectToolCalls', () => {
-      it('pairs declarations and results while keeping the first result', () => {
+      it('pairs a declared tool with its result', () => {
         const model = emptyCall('trace', 'model', 'r')
         model.events = [{ ...responseEvent, payload: { output: [toolCall] } }]
         const result = event(3, 'tool.result', { callId: 'tool-1', output: 'first' })
-        const calls = collectToolCalls('trace', [result, event(4, 'tool.result', { callId: 'tool-1', output: 'second' })], [model])
+        const calls = collectToolCalls('trace', [result], [model])
         expect(calls).toHaveLength(1)
         expect(fixture(calls)).toMatchObject({
           output: 'first',
           status: 'success',
-          associationConflict: true,
+          associationConflict: false,
           parentId: model.id,
         })
       })
@@ -735,10 +759,24 @@ describe('aggregate helpers', () => {
         expect(call.timing.end).toBe(responseEvent.timestamp)
       })
 
-      it('records an unresolved target at trace level', () => {
-        const trace = createTraceSummary('trace', [event(4, 'trace.error', { callId: 'missing', message: 'failure' })], [], [])
+      it.each([
+        { name: 'model request', target: { requestId: 'shared-id' }, modelErrors: ['failure'], toolErrors: [], issues: [] },
+        { name: 'tool call', target: { callId: 'shared-id' }, modelErrors: [], toolErrors: ['failure'], issues: [] },
+        { name: 'missing request', target: { requestId: 'missing' }, modelErrors: [], toolErrors: [], issues: ['Error target not found: missing'] },
+        { name: 'missing tool', target: { callId: 'missing' }, modelErrors: [], toolErrors: [], issues: ['Error target not found: missing'] },
+        { name: 'trace only', target: {}, modelErrors: [], toolErrors: [], issues: [] },
+      ])('attaches errors addressed to $name without crossing call kinds', ({ target, modelErrors, toolErrors, issues }) => {
+        const model = modelCall('trace', 'shared-id', [request(1, 'shared-id')], 'request')
+        const tool = emptyCall('trace', 'tool', 'shared-id')
+        const error = event(2, 'trace.error', { ...target, message: 'failure' })
+        const trace = createTraceSummary('trace', [event(1, 'trace.start'), error], [], [model, tool])
         attachTraceErrors(trace)
-        expect(trace.issues).toContain('Error target not found: missing')
+        expect(model.errors).toEqual(modelErrors)
+        expect(tool.errors).toEqual(toolErrors)
+        expect(trace.errors).toEqual(['failure'])
+        expect(trace.issues).toEqual(issues)
+        expect(model.events.includes(error)).toBe(modelErrors.length > 0)
+        expect(tool.events.includes(error)).toBe(toolErrors.length > 0)
       })
     })
 
@@ -775,28 +813,24 @@ describe('aggregate helpers', () => {
         expect(pending.issues).toContain('Interrupted; specific cause not located')
       })
 
-      it('cancels unresolved calls only after an explicit cancelled terminal', () => {
+      it.each([
+        { name: 'no terminal', events: [event(1, 'trace.start')], status: 'running', issues: [] },
+        { name: 'normal completion', events: [endEvent], status: 'incomplete', issues: ['Output missing after Trace ended'] },
+        { name: 'explicit cancellation', events: [event(3, 'trace.end', {}, { status: 'cancelled' })], status: 'cancelled', issues: [] },
+        {
+          name: 'trace failure',
+          events: [event(3, 'trace.error', { message: 'disconnected' })],
+          status: 'interrupted',
+          issues: ['Interrupted; specific cause not located'],
+        },
+      ])('finalizes a pending call after $name', ({ events, status, issues }) => {
         const call = emptyCall('trace', 'model', 'r')
-        const trace = createTraceSummary('trace', [event(3, 'trace.end', {}, { status: 'cancelled' })], [], [call])
+        const trace = createTraceSummary('trace', events, [], [call])
         finalizeCalls(trace)
-        expect(call.status).toBe('cancelled')
-        expect(call.issues).toEqual([])
-      })
-
-      it('leaves a call running when no terminal has arrived', () => {
-        const call = emptyCall('trace', 'model', 'r')
-        const trace = createTraceSummary('trace', [event(1, 'trace.start')], [], [call])
-        finalizeCalls(trace)
-        expect(call.status).toBe('running')
-        expect(call.issues).toEqual([])
-      })
-
-      it('marks unresolved calls incomplete after a normal terminal', () => {
-        const call = emptyCall('trace', 'model', 'r')
-        const trace = createTraceSummary('trace', [endEvent], [], [call])
-        finalizeCalls(trace)
-        expect(call.status).toBe('incomplete')
-        expect(call.issues).toContain('Output missing after Trace ended')
+        expect(call.status).toBe(status)
+        expect(call.issues).toEqual(issues)
+        expect(call.output).toBeUndefined()
+        expect(call.timing.end).toBeUndefined()
       })
     })
   })

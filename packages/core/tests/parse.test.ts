@@ -16,18 +16,33 @@ describe('minimal protocol parser', () => {
     expect(parseBridgeMessage(message)).toEqual(message)
   })
 
-  it('rejects invalid event and bridge shapes', () => {
-    expect(safeParseTraceEvent({ ...start, sequence: 0 }).success).toBeFalsy()
-    expect(safeParseBridgeMessage({ channel: 'other', kind: 'trace-event', data: start }).success).toBeFalsy()
+  it('reports the event field that failed validation', () => {
+    const result = safeParseTraceEvent({ ...start, sequence: 0 })
+    expect(result.success).toBeFalsy()
+    if (result.success)
+      throw new Error('Expected invalid sequence to be rejected')
+    expect(result.issues.map(({ code, path }) => ({ code, path })))
+      .toEqual([{ code: 'INVALID_EVENT', path: ['sequence'] }])
+  })
+
+  it('preserves nested event paths in bridge validation errors', () => {
+    const result = safeParseBridgeMessage({ channel: 'trace-script', kind: 'trace-event', data: { ...start, sequence: 0 } })
+    expect(result.success).toBeFalsy()
+    if (result.success)
+      throw new Error('Expected invalid bridge event to be rejected')
+    expect(result.issues.map(({ code, path }) => ({ code, path })))
+      .toEqual([{ code: 'INVALID_BRIDGE', path: ['data', 'sequence'] }])
+  })
+
+  it('throws the public validation error for invalid event and bridge inputs', () => {
     expect(() => parseTraceEvent({ ...start, eventId: '' })).toThrow(ProtocolValidationError)
+    expect(() => parseBridgeMessage({ channel: 'other', kind: 'trace-event', data: start })).toThrow(ProtocolValidationError)
   })
 
   it('keeps response JSON values, including empty values', () => {
     const response = { ...start, type: 'model.response', payload: { output: [], usage: null, empty: '' } }
     const parsed = parseTraceEvent(response)
-    expect(parsed.type).toBe('model.response')
-    if (parsed.type === 'model.response')
-      expect(parsed.payload).toEqual(response.payload)
+    expect(parsed).toMatchObject({ type: 'model.response', payload: response.payload })
   })
 
   it('rejects unserializable payloads', () => {

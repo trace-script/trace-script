@@ -14,7 +14,9 @@ export function isTraceTerminal(event: TraceEventEnvelope): event is TraceTermin
 }
 
 export function traceTerminalStatus(event: TraceTerminal): TraceStatus {
-  return event.type === 'trace.error' ? 'failed' : event.status === 'cancelled' ? 'cancelled' : 'success'
+  if (event.type === 'trace.error')
+    return 'failed'
+  return event.status === 'cancelled' ? 'cancelled' : 'success'
 }
 
 export function collectModelCalls(traceId: string, events: readonly TraceEventEnvelope[]): CallRecord[] {

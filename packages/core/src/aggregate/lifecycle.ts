@@ -57,13 +57,19 @@ export function createTraceSummary(traceId: string, events: TraceEventEnvelope[]
   return trace
 }
 
+function matchesErrorTarget(call: CallRecord, error: Extract<TraceEventEnvelope, { type: 'trace.error' }>): boolean {
+  if (error.payload.requestId)
+    return call.kind === 'model' && call.events.some(event => isModelEvent(event) && event.requestId === error.payload.requestId)
+  if (error.payload.callId)
+    return call.kind === 'tool' && call.callId === error.payload.callId
+  return false
+}
+
 export function attachTraceErrors(trace: TraceSummary): void {
   for (const error of trace.events) {
     if (error.type !== 'trace.error')
       continue
-    const target = trace.calls.find(call => error.payload.requestId
-      ? call.kind === 'model' && call.events.some(event => isModelEvent(event) && event.requestId === error.payload.requestId)
-      : error.payload.callId ? call.kind === 'tool' && call.callId === error.payload.callId : false)
+    const target = trace.calls.find(call => matchesErrorTarget(call, error))
     if (target) {
       target.errors.push(error.payload.message)
       target.events.push(error)

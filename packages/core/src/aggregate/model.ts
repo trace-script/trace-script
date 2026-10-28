@@ -9,7 +9,7 @@ function applyModelRequest(call: CallRecord, request: Extract<TraceEventEnvelope
   call.input = JSON.stringify(request.payload, null, 2)
   call.model = modelMetadata(request, 'model') || '—'
   call.agent = modelMetadata(request, 'agent') || '—'
-  call.name = modelMetadata(request, 'name') || call.model.replace(/^—$/, 'Model call')
+  call.name = modelMetadata(request, 'name') || (call.model === '—' ? 'Model call' : call.model)
 }
 
 function applyModelResponse(call: CallRecord, response: Extract<TraceEventEnvelope, { type: 'model.response' }>, hasRequest: boolean): void {
