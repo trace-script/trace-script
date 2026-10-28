@@ -67,10 +67,11 @@ window.addEventListener('pagehide', () => {
   if (portState.status === ContentPortStatus.CONNECTED)
     portState.port.disconnect()
   portState = { status: ContentPortStatus.DISCONNECTED }
-}, { once: true })
+})
 window.addEventListener('pageshow', (event) => {
   if (event.persisted) {
     // 页面从 back/forward cache 恢复，旧通道已关闭，重新连接。
     connect()
+    window.addEventListener('message', forward)
   }
 })
