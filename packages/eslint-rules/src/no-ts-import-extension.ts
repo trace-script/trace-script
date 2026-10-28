@@ -1,5 +1,4 @@
 import type { Rule } from './index'
-import { isString } from '@trace-script/shared'
 import { createSimplePlugin } from 'eslint-factory'
 
 export const noTsImportExtension: Rule = createSimplePlugin({
@@ -10,7 +9,7 @@ export const noTsImportExtension: Rule = createSimplePlugin({
     return {
       ImportDeclaration(node) {
         const source = node.source?.value
-        if (!isString(source) || !source.endsWith('.ts'))
+        if (typeof source !== 'string' || !source.endsWith('.ts'))
           return
 
         const nextPath = source.slice(0, -'.ts'.length)

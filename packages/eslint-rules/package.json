@@ -20,7 +20,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@trace-script/shared": "workspace:*",
     "eslint-factory": "catalog:lint",
     "vue-eslint-parser": "catalog:lint"
   },
