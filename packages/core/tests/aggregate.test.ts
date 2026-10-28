@@ -1,6 +1,12 @@
 import type { TraceEventEnvelope, TraceEventType } from '@trace-script/metadata'
 import { isUndefined } from '@trace-script/shared'
 import { describe, expect, it } from 'vitest'
+import { isModelEvent, isTraceTerminal, traceTerminalStatus } from '@/aggregate/association'
+import { conflict, emptyCall } from '@/aggregate/call'
+import { modelMetadata, responseStatus } from '@/aggregate/metadata'
+import { callTiming, compareEvents, recordId, responseTokens, sumUsage, validToken } from '@/aggregate/metrics'
+import { modelCall } from '@/aggregate/model'
+import { addToolDeclaration } from '@/aggregate/tool'
 import { aggregateEvents, parseTraceEvent } from '@/index'
 
 function event(sequence: number, type: TraceEventType, payload: object = {}, options: {
@@ -382,3 +388,70 @@ function fixture<T>(items: readonly T[], index = 0): T {
 function singleTrace(events: TraceEventEnvelope[]) {
   return fixture(aggregateEvents(events))
 }
+
+describe('aggregation function boundaries', () => {
+  const requestEvent = event(1, 'model.request', { model: 'fallback', trace: { model: 'nested' } }, { requestId: 'r', ms: 0 })
+  const responseEvent = response(2, 'r', { status: 'completed', usage: { input_tokens: 2, output_tokens: 3 } }, { ms: 1000 })
+  const endEvent = event(3, 'trace.end')
+  if (requestEvent.type !== 'model.request' || responseEvent.type !== 'model.response' || endEvent.type !== 'trace.end')
+    throw new Error('Expected model request, response and trace end fixtures')
+
+  it('encodes collision-free record identities and orders events', () => {
+    expect(recordId('a', 'model', 'b')).not.toBe(recordId('a', 'tool', 'b'))
+    expect(compareEvents(requestEvent, responseEvent)).toBeLessThan(0)
+    expect(compareEvents(responseEvent, { ...responseEvent, eventId: 'z' })).toBeLessThan(0)
+    expect(compareEvents(responseEvent, { ...responseEvent, timestamp: '2026-01-01T00:00:02Z' })).toBeLessThan(0)
+  })
+
+  it('preserves missing endpoints and rejects inverted or invalid timing', () => {
+    expect(callTiming(requestEvent.timestamp)).toEqual({ start: requestEvent.timestamp, end: undefined, anomalous: false })
+    expect(callTiming(requestEvent.timestamp, responseEvent.timestamp).duration).toBe(1000)
+    expect(callTiming(responseEvent.timestamp, requestEvent.timestamp).anomalous).toBeTruthy()
+    expect(callTiming('invalid', responseEvent.timestamp).anomalous).toBeTruthy()
+  })
+
+  it('validates token counts and derives totals only when absent', () => {
+    expect([0, -1, 1.5, Infinity].map(validToken)).toEqual([true, false, false, false])
+    expect(responseTokens(responseEvent)).toEqual({ input: 2, output: 3, total: 5 })
+    expect(responseTokens({ ...responseEvent, payload: { usage: { input_tokens: 2, output_tokens: 3, total_tokens: -1 } } })).toEqual({ input: 2, output: 3 })
+    expect(sumUsage([]).total).toEqual({ complete: false })
+    const model = modelCall('trace', 'r', [requestEvent, responseEvent])
+    expect(sumUsage([model, emptyCall('trace', 'tool', 't')]).total).toEqual({ value: 5, complete: true })
+    expect(sumUsage([model, emptyCall('trace', 'model', 'missing')]).total).toEqual({ value: 5, complete: false })
+  })
+
+  it('selects nested metadata and gives errors precedence over success', () => {
+    expect(modelMetadata(requestEvent, 'model')).toBe('nested')
+    expect(modelMetadata(requestEvent, 'name')).toBe('')
+    expect(responseStatus(responseEvent)).toBe('success')
+    expect(responseStatus({ ...responseEvent, payload: { status: 'completed', error: 'failure' } })).toBe('failed')
+    expect(responseStatus({ ...responseEvent, payload: {} })).toBe('unknown')
+  })
+
+  it('initializes independent calls and deduplicates conflict diagnostics', () => {
+    const call = emptyCall('trace', 'tool', 't')
+    conflict(call, 'duplicate')
+    conflict(call, 'duplicate')
+    expect(call.issues).toEqual(['duplicate'])
+    expect(call.associationConflict).toBeTruthy()
+    expect(emptyCall('trace', 'tool', 't').issues).toEqual([])
+  })
+
+  it('classifies model and terminal events', () => {
+    expect(isModelEvent(requestEvent)).toBeTruthy()
+    expect(isModelEvent(endEvent)).toBeFalsy()
+    expect(isTraceTerminal(endEvent)).toBeTruthy()
+    expect(traceTerminalStatus({ ...endEvent, status: 'cancelled' })).toBe('cancelled')
+  })
+
+  it('ignores unrelated output items and preserves empty tool arguments', () => {
+    const model = emptyCall('trace', 'model', 'r')
+    const tools = new Map<string, ReturnType<typeof emptyCall>>()
+    addToolDeclaration(tools, 'trace', model, responseEvent, { type: 'message', call_id: 'ignored' })
+    expect(tools.size).toBe(0)
+    expect(model.issues).toEqual([])
+    addToolDeclaration(tools, 'trace', model, responseEvent, { type: 'function_call', call_id: 't', arguments: '' })
+    expect(tools.get('t')?.input).toBe('')
+    expect(tools.get('t')?.issues).toEqual([])
+  })
+})
