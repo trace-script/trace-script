@@ -39,7 +39,9 @@ export function collectModelCalls(traceId: string, events: readonly TraceEventEn
     }
     else {
       const call = modelCall(traceId, event.eventId, [event])
-      call.issues.push(legacyPending.length > 1 ? 'Ambiguous legacy response: multiple unpaired requests' : 'No matching request; explicit and legacy identifiers are never mixed')
+      call.issues.push(legacyPending.length > 1
+        ? 'Ambiguous legacy response: multiple unpaired requests'
+        : 'No matching request; explicit and legacy identifiers are never mixed')
       if (legacyPending.length > 1) {
         for (const request of legacyPending)
           ambiguousRequests.add(request.eventId)

@@ -1,2 +1,2 @@
-export * from './aggregate'
+export * from './aggregate/index'
 export * from './parse'
