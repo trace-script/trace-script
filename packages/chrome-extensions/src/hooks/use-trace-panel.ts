@@ -47,13 +47,22 @@ interface TracePanelState {
 
 export function useTracePanel(): TracePanelState {
   const events = shallowRef<TraceEventEnvelope[]>([])
-  const selectedId = shallowRef('')
-  const selectedSources = shallowRef<string[]>([])
-  const selectedKind = shallowRef<'trace' | 'model' | 'tool'>('trace')
   const isPreview = shallowRef(false)
   const connected = shallowRef(false)
-  const filtersVisible = shallowRef(true)
   const [recording, toggleRecording] = useToggle(true)
+
+  const traces = computed(() => aggregateEvents(events.value))
+  const calls = computed(() => {
+    const allCalls = traces.value.flatMap(trace => trace.calls)
+    return allCalls.sort((left, right) => {
+      const leftTimestamp = left.timing.start ?? left.timing.end ?? left.events[0]?.timestamp ?? ''
+      const rightTimestamp = right.timing.start ?? right.timing.end ?? right.events[0]?.timestamp ?? ''
+      return Date.parse(leftTimestamp) - Date.parse(rightTimestamp) || left.id.localeCompare(right.id)
+    })
+  })
+  const records = computed(() => traces.value.flatMap(trace => [trace, ...trace.calls]))
+
+  const filtersVisible = shallowRef(true)
   const filter = reactive({
     query: '',
     type: TRACE_FILTER_VALUE.ALL as EventTypeFilter,
@@ -61,34 +70,50 @@ export function useTracePanel(): TracePanelState {
     agent: TRACE_FILTER_VALUE.ALL,
     onlyErrors: false,
   })
-  const timelineHeight = shallowRef(0)
-  const detailsWidth = shallowRef(500)
-  const dragging = shallowRef<'timeline' | 'details' | ''>('')
-  let dragOrigin = 0
-  let dragSize = 0
-  let cleanup = (): void => {}
-  const traces = computed(() => aggregateEvents(events.value))
-  const calls = computed(() => traces.value.flatMap(trace => trace.calls).sort((a, b) => {
-    const startA = a.timing.start ?? a.timing.end ?? a.events[0]?.timestamp ?? ''
-    const startB = b.timing.start ?? b.timing.end ?? b.events[0]?.timestamp ?? ''
-    return Date.parse(startA) - Date.parse(startB) || a.id.localeCompare(b.id)
+  const agents = computed(() => {
+    const callAgents = calls.value.map(call => call.agent).filter(agent => agent !== '—')
+    return [TRACE_FILTER_VALUE.ALL, ...new Set(callAgents)]
+  })
+  const visibleTraces = computed(() => traces.value.filter((trace) => {
+    return matchesTrace(trace, filter)
+      || trace.calls.some(call => matchesCall(call, filter, trace))
   }))
-  const records = computed(() => traces.value.flatMap(trace => [trace, ...trace.calls]))
-  const visibleTraces = computed(() => traces.value.filter(trace => matchesTrace(trace, filter) || trace.calls.some(call => matchesCall(call, filter, trace))))
-  const visibleCalls = computed(() => calls.value.filter(call => matchesCall(call, filter, traces.value.find(trace => trace.traceId === call.traceId))))
-  const selectedRecord = computed(() => records.value.find(record => record.id === selectedId.value)
-    ?? records.value.find(record => record.kind === selectedKind.value && record.events.some(event => selectedSources.value.includes(event.eventId)))
-    ?? false)
+  const visibleCalls = computed(() => calls.value.filter((call) => {
+    const trace = traces.value.find(trace => trace.traceId === call.traceId)
+    return matchesCall(call, filter, trace)
+  }))
+
+  const selectedId = shallowRef('')
+  const selectedSources = shallowRef<string[]>([])
+  const selectedKind = shallowRef<'trace' | 'model' | 'tool'>('trace')
+  const selectedRecord = computed(() => {
+    const selected = records.value.find(record => record.id === selectedId.value)
+    if (selected)
+      return selected
+
+    // Pairing late events can change a record's ID; recover it from its source events.
+    return records.value.find((record) => {
+      return record.kind === selectedKind.value
+        && record.events.some(event => selectedSources.value.includes(event.eventId))
+    }) ?? false
+  })
   const activeId = computed(() => selectedRecord.value ? selectedRecord.value.id : '')
-  const agents = computed(() => [TRACE_FILTER_VALUE.ALL, ...new Set(calls.value.map(call => call.agent).filter(agent => agent !== '—'))])
+
+  function selectEvent(id: string): void {
+    const record = records.value.find(record => record.id === id)
+    if (!record)
+      return
+    selectedId.value = id
+    selectedSources.value = record.events.map(event => event.eventId)
+    selectedKind.value = record.kind
+  }
+
   const totalUsage = computed(() => sumUsage(calls.value))
   const visibleUsage = computed(() => sumUsage(visibleCalls.value))
-  const failedTraceCount = computed(() => traces.value.filter(trace => trace.status === 'failed' || trace.status === 'conflict').length)
   const failedCount = computed(() => calls.value.filter(call => call.status === 'failed').length)
-  const workspaceClass = computed(() => timelineHeight.value > 0
-    ? `timeline-layout-${timelineHeight.value}`
-    : 'timeline-layout-auto')
-  const contentClass = computed(() => `details-layout-${detailsWidth.value}`)
+  const failedTraceCount = computed(() => {
+    return traces.value.filter(trace => trace.status === 'failed' || trace.status === 'conflict').length
+  })
 
   function handleMessage(message: WorkerToPanelMessage): void {
     if (message.type === EXTENSION_MESSAGE_TYPE.TRACE_QUERY_RESULT)
@@ -100,14 +125,6 @@ export function useTracePanel(): TracePanelState {
       if (first)
         selectEvent(first.id)
     }
-  }
-  function selectEvent(id: string): void {
-    const record = records.value.find(record => record.id === id)
-    if (!record)
-      return
-    selectedId.value = id
-    selectedSources.value = record.events.map(event => event.eventId)
-    selectedKind.value = record.kind
   }
   function clearEvents(): void {
     events.value = []
@@ -126,6 +143,17 @@ export function useTracePanel(): TracePanelState {
       timestamp: new Date(Date.parse(event.timestamp) + offset).toISOString(),
     }))]
   }
+
+  const timelineHeight = shallowRef(0)
+  const detailsWidth = shallowRef(500)
+  const dragging = shallowRef<'timeline' | 'details' | ''>('')
+  let dragOrigin = 0
+  let dragSize = 0
+  const workspaceClass = computed(() => timelineHeight.value > 0
+    ? `timeline-layout-${timelineHeight.value}`
+    : 'timeline-layout-auto')
+  const contentClass = computed(() => `details-layout-${detailsWidth.value}`)
+
   function startResize(kind: 'timeline' | 'details', event: PointerEvent): void {
     dragging.value = kind
     dragOrigin = kind === 'timeline' ? event.clientY : event.clientX
@@ -161,6 +189,7 @@ export function useTracePanel(): TracePanelState {
   }
   useEventListener('pointermove', resize)
   useEventListener('pointerup', () => dragging.value = '')
+
   onKeyStroke(['ArrowDown', 'ArrowUp', 'Escape'], (event) => {
     const target = event.target
     if (target instanceof HTMLElement && (target.closest('input, select, textarea, [role="separator"], [role="tablist"], .agent-work-overview') || target.isContentEditable))
@@ -179,6 +208,8 @@ export function useTracePanel(): TracePanelState {
       selectedSources.value = []
     }
   })
+
+  let cleanup = (): void => {}
   onMounted(() => {
     if (typeof chrome === 'undefined' || !chrome.devtools?.inspectedWindow) {
       isPreview.value = true
