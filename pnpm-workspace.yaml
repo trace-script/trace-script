@@ -52,6 +52,7 @@ catalogs:
   test:
     '@vitest/coverage-v8': 5.0.2
     '@vue/test-utils': ^2.4.6
+    fake-indexeddb: ^6.2.7
     happy-dom: ^20.8.8
     vitest: ^5.0.2
   types:

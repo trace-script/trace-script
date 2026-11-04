@@ -3,7 +3,8 @@ import type { WorkerToPanelMessage } from '@/messages'
 import { aggregateEvents } from '@trace-script/core'
 import { AgentWorkOverview } from '@trace-script/vue-components'
 import { mount } from '@vue/test-utils'
-import { describe, expect, it, vi } from 'vitest'
+import { IDBFactory } from 'fake-indexeddb'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { computed, defineComponent, nextTick } from 'vue'
 import App from '@/app.vue'
 import PayloadTab from '@/components/details/PayloadTab.vue'
@@ -23,9 +24,51 @@ const event = {
   type: 'trace.start',
 } satisfies TraceEventEnvelope
 
+beforeEach(() => {
+  vi.stubGlobal('indexedDB', new IDBFactory())
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+async function mountState() {
+  const wrapper = mount(defineComponent({ setup: useTracePanel, template: '<div />' }))
+  await vi.waitFor(() => expect(wrapper.vm.connected).toBeTruthy())
+  return wrapper
+}
+
+async function mountApp() {
+  const wrapper = mount(App)
+  await vi.waitFor(() => expect(wrapper.find('footer').text()).toContain('Connected'))
+  return wrapper
+}
+
 describe('trace panel state', () => {
+  it('restores added samples after remount and keeps a cleared preview empty', async () => {
+    const first = await mountState()
+    first.vm.addPreviewEvents()
+    first.vm.addPreviewEvents()
+    await vi.waitFor(() => expect(first.vm.traces).toHaveLength(3))
+    const saved = [...first.vm.events]
+    expect(new Set(saved.map(event => event.eventId)).size).toBe(21)
+    first.unmount()
+
+    const restored = await mountState()
+    expect(restored.vm.events).toEqual(saved)
+    restored.vm.clearEvents()
+    await vi.waitFor(() => expect(restored.vm.events).toHaveLength(0))
+    restored.unmount()
+
+    const cleared = await mountState()
+    expect(cleared.vm.events).toEqual([])
+    cleared.vm.addPreviewEvents()
+    await vi.waitFor(() => expect(cleared.vm.calls).toHaveLength(3))
+    cleared.unmount()
+  })
+
   it('keeps a selected legacy response when pairing changes its ID and another call precedes it', async () => {
-    const wrapper = mount(defineComponent({ setup: useTracePanel, template: '<div />' }))
+    const wrapper = await mountState()
     const base = { traceId: 'legacy-selection', timestamp: '2026-01-01T00:00:00.000Z' }
     const events: TraceEventEnvelope[] = [
       { ...base, eventId: 'other-request', sequence: 1, type: 'model.request', requestId: 'other', payload: { input: 'other' } },
@@ -58,12 +101,12 @@ describe('trace panel state', () => {
   })
 
   it('shows exactly six call rows for two complete three-call runs without summary rows or regions', async () => {
-    const wrapper = mount(App)
+    const wrapper = await mountApp()
     await nextTick()
     expect(wrapper.findAll('tbody tr')).toHaveLength(3)
     expect(wrapper.findAll('thead th').map(cell => cell.text())).toEqual(['TraceID', 'Name', 'Agent', 'Duration', 'Type', 'Status', 'Model', 'Tokens'])
     await wrapper.findAll('button').find(button => button.text() === 'Add sample Trace')!.trigger('click')
-    expect(wrapper.findAll('tbody tr')).toHaveLength(6)
+    await vi.waitFor(() => expect(wrapper.findAll('tbody tr')).toHaveLength(6))
     expect(wrapper.findAll('.event-row')).toHaveLength(6)
     expect(wrapper.find('[aria-label="Trace summaries"]').exists()).toBeFalsy()
     expect(wrapper.find('.trace-summary').exists()).toBeFalsy()
@@ -74,7 +117,7 @@ describe('trace panel state', () => {
   })
 
   it('shares flat filtered calls between the list and the existing timeline', async () => {
-    const wrapper = mount(App)
+    const wrapper = await mountApp()
     await nextTick()
     expect(wrapper.findAll('.event-row')).toHaveLength(3)
     expect(wrapper.find('[aria-label="Trace summaries"]').exists()).toBeFalsy()
@@ -98,8 +141,8 @@ describe('trace panel state', () => {
     wrapper.unmount()
   })
 
-  it('orders interleaved Traces by call time while sharing two timeline groups', () => {
-    const wrapper = mount(defineComponent({ setup: useTracePanel, template: '<div />' }))
+  it('orders interleaved Traces by call time while sharing two timeline groups', async () => {
+    const wrapper = await mountState()
     const events = ['z-early', 'a-later'].flatMap((traceId, index) => previewEvents.map(event => ({
       ...event,
       traceId,
@@ -125,7 +168,7 @@ describe('trace panel state', () => {
     const listeners: ((message: WorkerToPanelMessage) => void)[] = []
     const port = { onMessage: { addListener: (listener: (message: WorkerToPanelMessage) => void) => listeners.push(listener), removeListener: vi.fn() }, postMessage: vi.fn(), disconnect: vi.fn() }
     vi.stubGlobal('chrome', { devtools: { inspectedWindow: { tabId: 1 } }, runtime: { connect: () => port } })
-    const wrapper = mount(App)
+    const wrapper = await mountApp()
     try {
       const events: TraceEventEnvelope[] = [
         event,
@@ -151,7 +194,7 @@ describe('trace panel state', () => {
     const listeners: ((message: WorkerToPanelMessage) => void)[] = []
     const port = { onMessage: { addListener: (listener: (message: WorkerToPanelMessage) => void) => listeners.push(listener), removeListener: vi.fn() }, postMessage: vi.fn(), disconnect: vi.fn() }
     vi.stubGlobal('chrome', { devtools: { inspectedWindow: { tabId: 1 } }, runtime: { connect: () => port } })
-    const wrapper = mount(App)
+    const wrapper = await mountApp()
     try {
       const events: TraceEventEnvelope[] = [
         event,
@@ -183,7 +226,7 @@ describe('trace panel state', () => {
     }
   })
 
-  it('loads a query snapshot even when recording is paused', () => {
+  it('loads a query snapshot even when recording is paused', async () => {
     const PanelState = defineComponent({
       setup() {
         return useTracePanel()
@@ -191,6 +234,7 @@ describe('trace panel state', () => {
       template: '<div />',
     })
     const wrapper = mount(PanelState)
+    await vi.waitFor(() => expect(wrapper.vm.connected).toBeTruthy())
 
     wrapper.vm.toggleRecording()
     wrapper.vm.handleMessage({ type: EXTENSION_MESSAGE_TYPE.TRACE_QUERY_RESULT, events: [event] })
@@ -201,7 +245,7 @@ describe('trace panel state', () => {
 
   it('keeps explicit output-first selection and legacy source selection when input arrives', async () => {
     for (const explicit of [true, false]) {
-      const wrapper = mount(defineComponent({ setup: useTracePanel, template: '<div />' }))
+      const wrapper = await mountState()
       const response: TraceEventEnvelope = {
         eventId: 'response',
         traceId: 't',
@@ -235,8 +279,8 @@ describe('trace panel state', () => {
     }
   })
 
-  it('retains conflicting arrivals for aggregation rather than discarding them in transport', () => {
-    const wrapper = mount(defineComponent({ setup: useTracePanel, template: '<div />' }))
+  it('retains conflicting arrivals for aggregation rather than discarding them in transport', async () => {
+    const wrapper = await mountState()
     const response = previewEvents.find(event => event.type === 'model.response')!
     wrapper.vm.handleMessage({ type: EXTENSION_MESSAGE_TYPE.TRACE_QUERY_RESULT, events: [response] })
     wrapper.vm.handleMessage({ type: EXTENSION_MESSAGE_TYPE.TRACE_EVENTS_APPEND, event: { ...response, timestamp: '2024-01-01T12:00:09.000Z' } })
@@ -248,7 +292,7 @@ describe('trace panel state', () => {
   })
 
   it('keeps the active detail tab and scroll container when output arrives', async () => {
-    const state = mount(defineComponent({ setup: useTracePanel, template: '<div />' }))
+    const state = await mountState()
     const request = previewEvents[1]!
     const response = previewEvents[2]!
     state.vm.handleMessage({ type: EXTENSION_MESSAGE_TYPE.TRACE_QUERY_RESULT, events: [request] })
@@ -272,7 +316,7 @@ describe('trace panel state', () => {
   })
 
   it('navigates only flat visible calls and keeps Trace and related-call jumps available', async () => {
-    const wrapper = mount(defineComponent({ setup: useTracePanel, template: '<div />' }))
+    const wrapper = await mountState()
     const trace = wrapper.vm.traces[0]!
     wrapper.vm.selectEvent(trace.id)
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }))
