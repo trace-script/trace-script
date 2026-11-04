@@ -7,6 +7,7 @@ export interface ExtensionManifest {
   version: string
   minimum_chrome_version: string
   devtools_page: string
+  permissions: string[]
   background: {
     service_worker: string
     type: 'module'
@@ -50,6 +51,7 @@ export function createManifest(mode: string): ExtensionManifest {
     version,
     minimum_chrome_version: '120',
     devtools_page: 'devtools.html',
+    permissions: ['storage'],
     background: {
       service_worker: 'background.js',
       type: 'module',

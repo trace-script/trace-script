@@ -8,6 +8,7 @@ describe('extension manifest', () => {
       name: 'Trace Script',
       version: '0.1.0',
       devtools_page: 'devtools.html',
+      permissions: ['storage'],
       background: {
         service_worker: 'background.js',
         type: 'module',

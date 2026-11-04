@@ -45,6 +45,7 @@
     "@trace-script/sdk": "workspace:*",
     "@types/chrome": "catalog:types",
     "@types/node": "catalog:types",
+    "fake-indexeddb": "catalog:test",
     "nuxt": "catalog:build",
     "tailwindcss": "catalog:build",
     "tsx": "catalog:dev",

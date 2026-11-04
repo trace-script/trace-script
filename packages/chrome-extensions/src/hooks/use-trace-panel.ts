@@ -8,10 +8,12 @@ import { onKeyStroke, useEventListener, useToggle } from '@vueuse/core'
 import { computed, onMounted, onUnmounted, reactive, shallowRef } from 'vue'
 import { EXTENSION_MESSAGE_TYPE, EXTENSION_PORT_NAME } from '@/messages'
 import { previewEvents } from '@/preview'
+import { appendTraceEvents, clearTraceEvents, hasTraceHistory, readTraceEvents } from '@/storage/trace-events'
 import { matchesCall, matchesTrace, TRACE_FILTER_VALUE } from '@/utils/ui-model'
 
 const TIMELINE_FALLBACK_HEIGHT = 140
 const RESIZE_STEP = 4
+const PREVIEW_TAB_KEY = 'preview'
 
 interface TracePanelState {
   events: ShallowRef<TraceEventEnvelope[]>
@@ -49,6 +51,19 @@ export function useTracePanel(): TracePanelState {
   const events = shallowRef<TraceEventEnvelope[]>([])
   const isPreview = shallowRef(false)
   const connected = shallowRef(false)
+  let previewPending = Promise.resolve()
+  let mounted = true
+
+  function enqueuePreview(operation: () => Promise<void>): void {
+    previewPending = previewPending.then(operation).then(() => {
+      if (mounted)
+        connected.value = true
+    }).catch((error) => {
+      console.error('Preview trace storage operation failed', error)
+      if (mounted)
+        connected.value = false
+    })
+  }
   const [recording, toggleRecording] = useToggle(true)
 
   const traces = computed(() => aggregateEvents(events.value))
@@ -127,6 +142,17 @@ export function useTracePanel(): TracePanelState {
     }
   }
   function clearEvents(): void {
+    if (isPreview.value) {
+      enqueuePreview(async () => {
+        await clearTraceEvents(PREVIEW_TAB_KEY)
+        if (mounted) {
+          events.value = []
+          selectedId.value = ''
+          selectedSources.value = []
+        }
+      })
+      return
+    }
     events.value = []
     selectedId.value = ''
     selectedSources.value = []
@@ -134,14 +160,19 @@ export function useTracePanel(): TracePanelState {
   function addPreviewEvents(): void {
     if (!isPreview.value)
       return
-    const suffix = String(events.value.length)
-    const offset = events.value.length * 1000
-    events.value = [...events.value, ...previewEvents.map(event => ({
-      ...event,
-      traceId: `${event.traceId}-${suffix}`,
-      eventId: `${event.eventId}-${suffix}`,
-      timestamp: new Date(Date.parse(event.timestamp) + offset).toISOString(),
-    }))]
+    enqueuePreview(async () => {
+      const suffix = crypto.randomUUID()
+      const offset = events.value.length * 1000
+      const added = previewEvents.map(event => ({
+        ...event,
+        traceId: `${event.traceId}-${suffix}`,
+        eventId: `${event.eventId}-${suffix}`,
+        timestamp: new Date(Date.parse(event.timestamp) + offset).toISOString(),
+      }))
+      await appendTraceEvents(PREVIEW_TAB_KEY, added)
+      if (mounted)
+        handleMessage({ type: EXTENSION_MESSAGE_TYPE.TRACE_QUERY_RESULT, events: [...events.value, ...added] })
+    })
   }
 
   const timelineHeight = shallowRef(0)
@@ -213,11 +244,13 @@ export function useTracePanel(): TracePanelState {
   onMounted(() => {
     if (typeof chrome === 'undefined' || !chrome.devtools?.inspectedWindow) {
       isPreview.value = true
-      connected.value = true
-      events.value = [...previewEvents]
-      const first = calls.value[0]
-      if (first)
-        selectEvent(first.id)
+      enqueuePreview(async () => {
+        if (!await hasTraceHistory(PREVIEW_TAB_KEY))
+          await appendTraceEvents(PREVIEW_TAB_KEY, previewEvents)
+        const history = await readTraceEvents({ tabKey: PREVIEW_TAB_KEY })
+        if (mounted)
+          handleMessage({ type: EXTENSION_MESSAGE_TYPE.TRACE_QUERY_RESULT, events: history })
+      })
       return
     }
     const port = chrome.runtime.connect({ name: EXTENSION_PORT_NAME.PANEL })
@@ -231,6 +264,7 @@ export function useTracePanel(): TracePanelState {
     }
   })
   onUnmounted(() => {
+    mounted = false
     cleanup()
   })
 
